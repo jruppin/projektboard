@@ -254,6 +254,8 @@ button.pill:hover{border-color:var(--accent)}
 .wk-col.today{border-color:var(--accent)}
 .wk-col .hr{height:var(--ph);border-top:1px solid var(--line)}
 .wk-col .hr:first-child{border-top:0}
+.wk-col .hr.off{background:color-mix(in srgb,var(--line) 40%,transparent)}
+.wk-hours div.off{opacity:.55}
 .wk-col .hr::after{content:"";display:block;height:50%;border-bottom:1px dotted color-mix(in srgb,var(--line) 70%,transparent)}
 .wk-col .block{font-size:11.5px;padding:3px 6px 9px;gap:1px}
 .wk-col .block .slot-title{font-size:12px}
@@ -620,6 +622,7 @@ function luminance(hex) {
 // Weiße Schrift bevorzugt; dunkle Schrift erst bei wirklich hellen Farben (Kontrast Weiß < 2,5)
 const darkTextOn = hex => 1.05 / (luminance(hex) + 0.05) < 2.5;
 const DAY_CAP = 8;
+const CORE_START = 9, CORE_END = 18; // Kernarbeitszeit 09:00–18:00
 
 /* ---------- Zustand ---------- */
 let prefs = {};
@@ -1260,7 +1263,7 @@ function renderWeek() {
   const days = Array.from({ length: n }, (_, i) => addDays(start, i));
   const keys = days.map(ymd);
   const perDay = keys.map(k => slotsOn(k));
-  let H0 = 7, H1 = 19;
+  let H0 = CORE_START, H1 = CORE_END;
   for (const s of perDay.flat()) { const m = toMin(s.start); if (m != null) { H0 = Math.min(H0, Math.floor(m / 60)); H1 = Math.max(H1, Math.ceil((m + (Number(s.hours) || 0) * 60) / 60)); } }
   H1 = Math.min(H1, 24);
   const PX = 48;
@@ -1289,12 +1292,12 @@ function renderWeek() {
       h('button', { class: 'add-slot write-only', type: 'button', 'data-add-date': keys[i] }, '+ Einplanen')));
   });
   const hoursCol = h('div', { class: 'wk-hours' });
-  for (let hr = H0; hr < H1; hr++) hoursCol.append(h('div', { text: `${pad(hr)}:00` }));
+  for (let hr = H0; hr < H1; hr++) hoursCol.append(h('div', { class: hr < CORE_START || hr >= CORE_END ? 'off' : null, text: `${pad(hr)}:00` }));
   cells.push(hoursCol);
   days.forEach((d, i) => {
     const key = keys[i];
     const col = h('div', { class: `wk-col${key === tday ? ' today' : ''}${i > 4 ? ' weekend' : ''}`, 'data-date': key, 'data-h0': H0, 'data-h1': H1, 'data-px': PX, style: `height:${(H1 - H0) * PX}px`, title: S.canWrite ? 'Klicken, um hier Zeit einzuplanen' : null });
-    for (let hr = H0; hr < H1; hr++) col.append(h('div', { class: 'hr' }));
+    for (let hr = H0; hr < H1; hr++) col.append(h('div', { class: 'hr' + (hr < CORE_START || hr >= CORE_END ? ' off' : '') }));
     const items = perDay[i].filter(s => toMin(s.start) != null).map(s => ({ s, a: toMin(s.start), b: toMin(s.start) + Math.max(15, (Number(s.hours) || 0) * 60) })).sort((x, y) => x.a - y.a);
     const laneEnds = [];
     for (const it of items) { let l = laneEnds.findIndex(e => e <= it.a); if (l < 0) { l = laneEnds.length; laneEnds.push(0); } laneEnds[l] = it.b; it.lane = l; }
