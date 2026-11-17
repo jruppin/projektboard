@@ -226,7 +226,7 @@ button.pill:hover{border-color:var(--accent)}
 .palette h4,.side h4{font-size:15px}
 .hint{font-size:12.5px;color:var(--muted);margin:4px 0 10px}
 .palette-list{display:grid;gap:6px}
-.pchip{display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--line);border-left:4px solid var(--c);border-radius:8px;background:var(--surface-2);font-size:13.5px;cursor:grab;user-select:none}
+.pchip{display:flex;align-items:center;gap:8px;padding:7px 10px;border:0;border-radius:8px;background:var(--c);color:#fff;font-size:13.5px;font-weight:500;cursor:grab;user-select:none}
 .readonly .pchip{cursor:default}
 .pchip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .weekgrid-wrap{overflow-x:auto}
@@ -245,7 +245,7 @@ button.pill:hover{border-color:var(--accent)}
 .day-link{border:0;background:none;padding:0;text-align:left}
 .day-link:hover h4{color:var(--accent)}
 .slots{flex:1;display:flex;flex-direction:column;gap:6px;padding:8px;min-height:80px}
-.slot{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--c);border-radius:8px;padding:7px 8px;font-size:13px;cursor:grab;display:grid;gap:3px;box-shadow:var(--shadow)}
+.slot{background:var(--c);color:#fff;border:0;border-radius:8px;padding:8px 9px;font-size:13px;cursor:grab;display:grid;gap:3px;box-shadow:var(--shadow)}
 .readonly .slot{cursor:pointer}
 .slot-title{font-weight:600;overflow-wrap:anywhere;line-height:1.25}
 .slot-meta{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px}
@@ -255,7 +255,20 @@ button.pill:hover{border-color:var(--accent)}
 .slot-hrs button{width:22px;height:22px;border-radius:6px;border:1px solid var(--line);background:var(--surface-2);font-size:13px;line-height:1;padding:0}
 .add-slot{margin:0 8px 8px;border:1px dashed var(--line);background:transparent;border-radius:8px;padding:6px;color:var(--muted);font-size:13px}
 .add-slot:hover{border-color:var(--accent);color:var(--accent)}
-.slots .pchip{border-style:dashed}
+.slots .pchip{opacity:.85}
+/* Starke Farben in Woche und Tag: Schrift auf der Kundenfarbe */
+.slot .slot-client,.block .slot-client{color:rgba(255,255,255,.82)}
+.slot .slot-meta,.block .slot-meta,.slot .slot-note,.block .slot-note{color:rgba(255,255,255,.88)}
+.slot .slot-meta .num,.block .slot-meta .num{color:#fff}
+.slot .slot-hrs button{background:rgba(255,255,255,.2);border-color:transparent;color:#fff}
+.slot .slot-hrs button:hover{background:rgba(255,255,255,.35)}
+.slot .av,.block .av{border-color:#fff}
+.slot:focus-visible,.block:focus-visible,.pchip:focus-visible{outline-color:var(--ink)}
+.on-light.slot,.on-light.block,.on-light.pchip{color:#13201d}
+.on-light .slot-client,.on-light .slot-meta,.on-light .slot-note{color:rgba(19,32,29,.72)}
+.on-light .slot-meta .num{color:#13201d}
+.on-light .slot-hrs button{background:rgba(0,0,0,.1);color:#13201d}
+.on-light .slot-hrs button:hover{background:rgba(0,0,0,.18)}
 
 /* Tag */
 .day-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start}
@@ -269,7 +282,7 @@ button.pill:hover{border-color:var(--accent)}
 .readonly .lane-area{cursor:default}
 .lane-area .hr{height:var(--ph);border-top:1px solid var(--line)}
 .lane-area .hr::after{content:"";display:block;height:50%;border-bottom:1px dotted color-mix(in srgb,var(--line) 70%,transparent)}
-.block{position:absolute;border-radius:8px;border:1px solid var(--line);border-left:4px solid var(--c);background:color-mix(in srgb,var(--c) 12%,var(--surface));padding:5px 8px;font-size:12.5px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.block{position:absolute;border-radius:8px;border:1px solid rgba(255,255,255,.6);background:var(--c);color:#fff;padding:5px 8px;font-size:12.5px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;gap:2px;box-shadow:var(--shadow)}
 .block .slot-title{font-size:13px}
 .nowline{position:absolute;left:0;right:0;height:2px;background:var(--bad);z-index:2;pointer-events:none}
 .nowline::before{content:"";position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--bad)}
@@ -1055,7 +1068,7 @@ function destroySortables() { for (const s of S.sortables) { try { s.destroy(); 
 function slotCard(s, withHours = true) {
   const p = proj(s.projectId);
   const timeTxt = s.start ? `${s.start} · ${fmtH(s.hours)}` : fmtH(s.hours);
-  return h('div', { class: 'slot', 'data-slot': s.id, '--c': jobColor(p), tabindex: '0', role: 'button', 'aria-label': `${clientName(p)}: ${p.title}, ${timeTxt}, ${nameOf(s.userId)} – bearbeiten` },
+  return h('div', { class: 'slot' + (darkTextOn(jobColor(p)) ? ' on-light' : ''), 'data-slot': s.id, '--c': jobColor(p), tabindex: '0', role: 'button', 'aria-label': `${clientName(p)}: ${p.title}, ${timeTxt}, ${nameOf(s.userId)} – bearbeiten` },
     h('div', { class: 'slot-client', text: clientName(p) }),
     h('div', { class: 'slot-title', text: p.title }),
     h('div', { class: 'slot-meta' }, s.userId ? avatar(s.userId, 'sm') : null, h('span', { class: 'num', text: timeTxt }),
@@ -1075,7 +1088,7 @@ function renderWeek() {
   const groups = clientsSorted().map(c => ({ c, jobs: jobsOf(c.id).filter(p => p.status !== 'erledigt') })).filter(g => g.jobs.length);
   pal.replaceChildren(...(groups.length ? groups.flatMap(g => [
     h('div', { class: 'pal-client', '--c': g.c.color || COLORS[0], text: g.c.name }),
-    ...g.jobs.map(p => h('div', { class: 'pchip', 'data-project': p.id, '--c': jobColor(p), title: `${g.c.name}: ${p.title}` }, h('span', { text: p.title })))
+    ...g.jobs.map(p => h('div', { class: 'pchip' + (darkTextOn(jobColor(p)) ? ' on-light' : ''), 'data-project': p.id, '--c': jobColor(p), title: `${g.c.name}: ${p.title}` }, h('span', { text: p.title })))
   ]) : [h('p', { class: 'hint', text: 'Noch keine offenen Jobs.' })]));
 
   const grid = $('#weekgrid');
@@ -1162,7 +1175,7 @@ function renderDay() {
   for (const it of items) {
     const p = proj(it.s.projectId);
     const top = (it.a - H0 * 60) / 60 * PX, height = Math.max(26, (it.b - it.a) / 60 * PX - 3);
-    area.append(h('div', { class: 'block', 'data-slot': it.s.id, '--c': jobColor(p), tabindex: '0', role: 'button', 'aria-label': `${clientName(p)}: ${p.title} ab ${it.s.start}, ${fmtH(it.s.hours)} – bearbeiten`,
+    area.append(h('div', { class: 'block' + (darkTextOn(jobColor(p)) ? ' on-light' : ''), 'data-slot': it.s.id, '--c': jobColor(p), tabindex: '0', role: 'button', 'aria-label': `${clientName(p)}: ${p.title} ab ${it.s.start}, ${fmtH(it.s.hours)} – bearbeiten`,
       style: `top:${top + 1}px;height:${height}px;left:calc(${it.lane / lanes * 100}% + 4px);width:calc(${100 / lanes}% - 8px)` },
       h('div', { class: 'slot-client', text: clientName(p) }),
       h('div', { class: 'slot-title', text: p.title }),
