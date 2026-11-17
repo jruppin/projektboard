@@ -527,8 +527,8 @@ function luminance(hex) {
   const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
   return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
 }
-// Weiße Schrift, solange sie gut lesbar ist (Kontrast ≥ 4,5); sonst dunkle Schrift
-const darkTextOn = hex => { const L = luminance(hex); const cw = 1.05 / (L + 0.05), cd = (L + 0.05) / (0.0153 + 0.05); return cw < 4.5 && cd > cw; };
+// Weiße Schrift bevorzugt; dunkle Schrift erst bei wirklich hellen Farben (Kontrast Weiß < 2,5)
+const darkTextOn = hex => 1.05 / (luminance(hex) + 0.05) < 2.5;
 const DAY_CAP = 8;
 
 /* ---------- Zustand ---------- */
