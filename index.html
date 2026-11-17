@@ -316,7 +316,14 @@ button.pill:hover{border-color:var(--accent)}
 .readonly .lane-area{cursor:default}
 .lane-area .hr{height:var(--ph);border-top:1px solid var(--line)}
 .lane-area .hr::after{content:"";display:block;height:50%;border-bottom:1px dotted color-mix(in srgb,var(--line) 70%,transparent)}
-.block{position:absolute;border-radius:8px;border:1px solid rgba(255,255,255,.6);background:var(--c);color:#fff;padding:5px 8px;font-size:12.5px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;gap:2px;box-shadow:var(--shadow)}
+.block{position:absolute;border-radius:8px;border:1px solid rgba(255,255,255,.6);background:var(--c);color:#fff;padding:5px 8px 10px;font-size:12.5px;overflow:hidden;cursor:grab;display:flex;flex-direction:column;gap:2px;box-shadow:var(--shadow);user-select:none}
+.readonly .block{cursor:pointer}
+.block.dragging{cursor:grabbing;z-index:3;box-shadow:0 10px 28px rgba(0,0,0,.28);opacity:.95}
+.block-resize{position:absolute;left:0;right:0;bottom:0;height:10px;cursor:ns-resize;touch-action:none}
+.block-resize::after{content:"";position:absolute;left:50%;bottom:3px;width:30px;height:3px;margin-left:-15px;border-radius:2px;background:rgba(255,255,255,.65)}
+.block:hover .block-resize::after,.block.dragging .block-resize::after{background:#fff}
+.on-light .block-resize::after{background:rgba(0,0,0,.3)}
+.on-light.block:hover .block-resize::after{background:rgba(0,0,0,.55)}
 .block .slot-title{font-size:13px}
 .nowline{position:absolute;left:0;right:0;height:2px;background:var(--bad);z-index:2;pointer-events:none}
 .nowline::before{content:"";position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--bad)}
@@ -1279,6 +1286,57 @@ function bumpHours(id, delta) {
 }
 
 /* Tag */
+/* Blöcke im Zeitstrahl mit der Maus verschieben (Beginn) oder an der Unterkante ziehen (Dauer), Raster 15 Minuten */
+function onBlockPointerDown(e) {
+  if (!S.canWrite || e.button !== 0) return;
+  const block = e.target.closest('.block'); if (!block) return;
+  const mode = e.target.closest('.block-resize') ? 'resize' : 'move';
+  if (mode === 'move' && e.pointerType === 'touch') return; // auf dem Handy bleibt Scrollen möglich
+  const s = S.slots.get(block.dataset.slot); if (!s) return;
+  const area = block.parentElement;
+  const H0 = Number(area.dataset.h0), H1 = Number(area.dataset.h1), PX = Number(area.dataset.px);
+  const startMin = toMin(s.start); if (startMin == null) return;
+  const dur = Math.max(15, Math.round((Number(s.hours) || 0) * 60));
+  const startY = e.clientY;
+  let moved = false, newStart = startMin, newDur = dur;
+  const label = $('.block-time', block);
+  e.preventDefault();
+  try { block.setPointerCapture(e.pointerId); } catch (er) {}
+  S.dragging = true;
+  const onMove = ev => {
+    const dy = ev.clientY - startY;
+    if (!moved && Math.abs(dy) < 4) return;
+    moved = true; block.classList.add('dragging');
+    const dMin = Math.round(dy / PX * 60 / 15) * 15;
+    if (mode === 'move') {
+      newStart = Math.min(Math.max(startMin + dMin, H0 * 60), H1 * 60 - newDur);
+      block.style.top = ((newStart - H0 * 60) / 60 * PX + 1) + 'px';
+    } else {
+      newDur = Math.min(Math.max(dur + dMin, 15), 24 * 60 - startMin);
+      block.style.height = Math.max(26, newDur / 60 * PX - 3) + 'px';
+    }
+    if (label) label.textContent = `${fromMin(newStart)}–${fromMin(Math.min(24 * 60, newStart + newDur))} · ${fmtH(newDur / 60)}`;
+  };
+  const onUp = () => {
+    block.removeEventListener('pointermove', onMove);
+    block.removeEventListener('pointerup', onUp);
+    block.removeEventListener('pointercancel', onUp);
+    try { block.releasePointerCapture(e.pointerId); } catch (er) {}
+    block.classList.remove('dragging');
+    S.dragging = false; S.pending = false;
+    if (!moved) { queueRender(); return; }
+    S.suppressClick = Date.now();
+    const p = proj(s.projectId);
+    if (mode === 'move' && newStart !== startMin) {
+      saveSlot(s.id, { start: fromMin(newStart) }).then(ok => { if (ok) toast(`${p ? p.title : 'Planung'}: ${fromMin(newStart)}–${fromMin(newStart + newDur)}`); });
+    } else if (mode === 'resize' && newDur !== dur) {
+      saveSlot(s.id, { hours: newDur / 60 }).then(ok => { if (ok) toast(`${p ? p.title : 'Planung'}: Dauer ${fmtH(newDur / 60)}`); });
+    } else queueRender();
+  };
+  block.addEventListener('pointermove', onMove);
+  block.addEventListener('pointerup', onUp);
+  block.addEventListener('pointercancel', onUp);
+}
 function renderDay() {
   const d = S.day, key = ymd(d);
   $('#day-label').replaceChildren(`${DAYS_LONG[wdIdx(d)]}, ${d.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}`, h('span', { style: 'color:var(--muted);font-weight:400;font-family:var(--font-body);font-size:14px', text: ` · KW ${isoWeek(d)}` }));
@@ -1298,7 +1356,8 @@ function renderDay() {
   const PX = 56;
   const tl = $('#timeline'); tl.style.setProperty('--ph', PX + 'px');
   const hoursCol = h('div', { class: 'hours-col' });
-  const area = h('div', { class: 'lane-area', 'data-date': key, title: S.canWrite ? 'Klicken, um hier Zeit einzuplanen' : null });
+  const area = h('div', { class: 'lane-area', 'data-date': key, 'data-h0': H0, 'data-h1': H1, 'data-px': PX, title: S.canWrite ? 'Klicken, um hier Zeit einzuplanen' : null });
+  area.addEventListener('pointerdown', onBlockPointerDown);
   for (let hr = H0; hr < H1; hr++) { hoursCol.append(h('div', { text: `${pad(hr)}:00` })); area.append(h('div', { class: 'hr' })); }
 
   // Überschneidungen in Spuren verteilen
@@ -1313,8 +1372,9 @@ function renderDay() {
       style: `top:${top + 1}px;height:${height}px;left:calc(${it.lane / lanes * 100}% + 4px);width:calc(${100 / lanes}% - 8px)` },
       h('div', { class: 'slot-client', text: clientName(p) }),
       h('div', { class: 'slot-title', text: p.title }),
-      h('div', { class: 'slot-meta' }, it.s.userId ? avatar(it.s.userId, 'sm') : null, h('span', { class: 'num', text: `${it.s.start}–${fromMin(Math.min(24 * 60, it.b))}` })),
-      it.s.note ? h('div', { class: 'slot-note', text: it.s.note }) : null));
+      h('div', { class: 'slot-meta' }, it.s.userId ? avatar(it.s.userId, 'sm') : null, h('span', { class: 'num block-time', text: `${it.s.start}–${fromMin(Math.min(24 * 60, it.b))}` })),
+      it.s.note ? h('div', { class: 'slot-note', text: it.s.note }) : null,
+      S.canWrite ? h('div', { class: 'block-resize', title: 'Ziehen, um die Dauer zu ändern', 'aria-hidden': 'true' }) : null));
   }
   if (key === ymd(today())) {
     const now = new Date(); const m = now.getHours() * 60 + now.getMinutes();
@@ -1599,6 +1659,7 @@ function bindStatic() {
   }, 60));
 
   document.addEventListener('click', e => {
+    if (S.suppressClick && Date.now() - S.suppressClick < 500) { S.suppressClick = 0; return; }
     const t = e.target;
     const act = t.closest('[data-act]');
     const tile = t.closest('.tile');
