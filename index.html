@@ -122,6 +122,20 @@ textarea{width:100%;resize:vertical;min-height:70px}
 .tile-meta .chip.soon{background:#fff;color:#a85a07}
 .tile-meta .av{border-color:#fff}
 .tile .notes{border-top:0}
+.tile.on-light .tile-head,.tile.on-light .tile-meta{color:#13201d}
+.tile.on-light .grip,.tile.on-light:hover .grip{color:rgba(19,32,29,.55)}
+.tile.on-light .tile-head .icon-btn{color:#13201d}
+.tile.on-light .tile-head .icon-btn:hover{background:rgba(0,0,0,.08);color:#13201d}
+.tile.on-light .tile-meta .pill{background:rgba(0,0,0,.09);color:#13201d}
+.tile.on-light .tile-meta button.pill:hover{background:rgba(0,0,0,.15)}
+.tile.on-light .tile-meta .pill::before{background:#13201d}
+.custom-color{display:flex;align-items:center;gap:8px;margin-top:8px;font-weight:400;color:var(--ink)}
+.custom-color input[type="color"]{width:40px;height:32px;padding:2px;border:1px solid var(--line);border-radius:8px;background:var(--surface);cursor:pointer}
+.custom-color .hex-input{width:110px;font-family:var(--font-mono);text-transform:lowercase}
+.color-preview{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--c);color:#fff;border-radius:10px;padding:12px 14px;font-family:var(--font-display);font-size:17px;font-weight:700}
+.color-preview .pill{background:rgba(255,255,255,.2);border-color:transparent;color:#fff;font-family:var(--font-body)}
+.color-preview.on-light{color:#13201d}
+.color-preview.on-light .pill{background:rgba(0,0,0,.09);color:#13201d}
 .tile :focus-visible{outline-color:currentColor}
 .tile.size-l{grid-column:span 2}
 .tile.is-done{opacity:.72}
@@ -493,6 +507,15 @@ const statusLabel = id => (STATUS.find(s => s.id === id) || STATUS[0]).label;
 const COLORS = ['#0d7a6e', '#2563eb', '#7c3aed', '#c0267a', '#c2410c', '#a16207', '#15803d', '#55636b'];
 const COLOR_FIX = { '#e0561b': '#c2410c', '#c79a06': '#a16207', '#2f9a48': '#15803d' };
 const fixColor = c => COLOR_FIX[c] || c;
+const isHex = v => /^#[0-9a-f]{6}$/i.test(String(v || ''));
+function luminance(hex) {
+  if (!isHex(hex)) return 0.1;
+  const n = parseInt(hex.slice(1), 16);
+  const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+  return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
+}
+// Weiße Schrift, solange sie gut lesbar ist (Kontrast ≥ 4,5); sonst dunkle Schrift
+const darkTextOn = hex => { const L = luminance(hex); const cw = 1.05 / (L + 0.05), cd = (L + 0.05) / (0.0153 + 0.05); return cw < 4.5 && cd > cw; };
 const DAY_CAP = 8;
 
 /* ---------- Zustand ---------- */
@@ -521,7 +544,7 @@ const proj = id => S.projects.get(id);
 const client = id => S.clients.get(id);
 const clientOf = p => (p && p.clientId && S.clients.get(p.clientId)) || null;
 const clientName = p => (clientOf(p) && clientOf(p).name) || (p && p.client) || 'Ohne Kunde';
-const jobColor = p => fixColor((clientOf(p) && clientOf(p).color) || (p && p.color) || COLORS[0]);
+const jobColor = p => clientOf(p) ? (clientOf(p).color || COLORS[0]) : fixColor((p && p.color) || COLORS[0]);
 const projColor = id => proj(id) ? jobColor(proj(id)) : 'var(--muted)';
 const jobsOf = cid => [...S.projects.values()].filter(p => cid === NO_CLIENT ? !clientOf(p) : p.clientId === cid).sort(byOrder);
 function clientsSorted() {
@@ -918,7 +941,9 @@ function dueChip(p) {
   return h('span', { class: `pill chip ${cls}`, title: 'Fällig am' }, diff === 0 ? 'heute fällig' : diff < 0 && p.status !== 'erledigt' ? `überfällig seit ${fmtD(d)}` : `fällig ${fmtD(d)}`);
 }
 function updateTile(el, c, jobs) {
-  el.style.setProperty('--c', fixColor(c.color || COLORS[0]));
+  const col = c.color || COLORS[0];
+  el.style.setProperty('--c', col);
+  el.classList.toggle('on-light', darkTextOn(col));
   el.classList.toggle('size-l', c.size === 'l');
   el.classList.toggle('is-virtual', !!c.virtual);
   $('h3', el).textContent = c.name || 'Ohne Namen';
@@ -1049,7 +1074,7 @@ function renderWeek() {
   const pal = $('#palette');
   const groups = clientsSorted().map(c => ({ c, jobs: jobsOf(c.id).filter(p => p.status !== 'erledigt') })).filter(g => g.jobs.length);
   pal.replaceChildren(...(groups.length ? groups.flatMap(g => [
-    h('div', { class: 'pal-client', '--c': fixColor(g.c.color || COLORS[0]), text: g.c.name }),
+    h('div', { class: 'pal-client', '--c': g.c.color || COLORS[0], text: g.c.name }),
     ...g.jobs.map(p => h('div', { class: 'pchip', 'data-project': p.id, '--c': jobColor(p), title: `${g.c.name}: ${p.title}` }, h('span', { text: p.title })))
   ]) : [h('p', { class: 'hint', text: 'Noch keine offenen Jobs.' })]));
 
@@ -1190,17 +1215,38 @@ function closeModal() { if (modalClose) modalClose(); }
 function openClientDialog(id) {
   const c = id ? client(id) : null;
   if (id && !c) return;
-  const st = { color: (c && fixColor(c.color)) || COLORS[S.clients.size % COLORS.length], size: (c && c.size) || 'm' };
+  const st = { color: ((c && c.color) || COLORS[S.clients.size % COLORS.length]).toLowerCase(), size: (c && c.size) || 'm' };
   const fName = h('input', { type: 'text', id: 'c-name', required: true, maxlength: '120', value: c ? c.name : '', placeholder: 'z. B. PWP Holding' });
-  const sw = h('div', { class: 'swatches', role: 'group', 'aria-label': 'Farbe' });
-  const drawSw = () => sw.replaceChildren(...COLORS.map(col => h('button', { type: 'button', class: 'swatch', '--c': col, 'aria-label': `Farbe ${col}`, 'aria-pressed': String(st.color === col), onclick: () => { st.color = col; drawSw(); } })));
+  const sw = h('div', { class: 'swatches', role: 'group', 'aria-label': 'Vorgeschlagene Farben' });
+  const fPick = h('input', { type: 'color', id: 'c-color', value: st.color, 'aria-label': 'Eigene Farbe wählen' });
+  const fHex = h('input', { type: 'text', id: 'c-hex', value: st.color, maxlength: '7', spellcheck: 'false', autocomplete: 'off', 'aria-label': 'Farbe als Hex-Code', class: 'hex-input' });
+  const preview = h('div', { class: 'color-preview' }, h('span', { class: 'pv-name' }), h('span', { class: 'pill chip' }, '2 offene Jobs'));
+  const setColor = (col, from) => {
+    if (!isHex(col)) return;
+    st.color = col.toLowerCase();
+    if (from !== 'pick') fPick.value = st.color;
+    if (from !== 'hex') fHex.value = st.color;
+    drawSw();
+  };
+  const drawSw = () => {
+    sw.replaceChildren(...COLORS.map(col => h('button', { type: 'button', class: 'swatch', '--c': col, 'aria-label': `Farbe ${col}`, 'aria-pressed': String(st.color === col), onclick: () => setColor(col) })));
+    preview.style.setProperty('--c', st.color);
+    preview.classList.toggle('on-light', darkTextOn(st.color));
+    $('.pv-name', preview).textContent = fName.value.trim() || 'Kundenname';
+  };
+  fPick.addEventListener('input', () => setColor(fPick.value, 'pick'));
+  fHex.addEventListener('input', () => { let v = fHex.value.trim(); if (v && v[0] !== '#') v = '#' + v; if (isHex(v)) setColor(v, 'hex'); });
+  fHex.addEventListener('blur', () => { fHex.value = st.color; });
+  fName.addEventListener('input', () => drawSw());
   drawSw();
   const sizeSeg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Kachelbreite' });
   const drawSize = () => sizeSeg.replaceChildren(...[['m', 'Normal'], ['l', 'Breit']].map(([v, l]) => h('button', { type: 'button', 'aria-pressed': String(st.size === v), onclick: () => { st.size = v; drawSize(); } }, l)));
   drawSize();
   const form = h('form', { class: 'form', onsubmit: e => { e.preventDefault(); save(); } },
     h('label', { class: 'lbl', for: 'c-name' }, 'Kundenname', fName),
-    h('div', { class: 'lbl' }, 'Farbe der Kachel', sw),
+    h('div', { class: 'lbl' }, 'Farbe der Kachel', sw,
+      h('div', { class: 'custom-color' }, fPick, h('label', { for: 'c-color', text: 'Eigene Farbe:' }), fHex)),
+    h('div', { class: 'lbl' }, 'Vorschau', preview),
     h('div', { class: 'lbl' }, 'Kachelbreite', sizeSeg),
     h('button', { type: 'submit', hidden: true }));
   async function save() {
