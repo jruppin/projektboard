@@ -107,7 +107,22 @@ textarea{width:100%;resize:vertical;min-height:70px}
 .grid{--tile-min:290px;display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--tile-min),1fr));gap:14px;align-items:start}
 .grid[data-density="s"]{--tile-min:230px}
 .grid[data-density="l"]{--tile-min:360px}
-.tile{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--c,var(--accent));border-radius:var(--r);box-shadow:var(--shadow);display:flex;flex-direction:column;min-width:0}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.tile-head,.tile-meta{background:var(--c,var(--accent));color:#fff}
+.tile-head{padding-top:14px}
+.tile-meta{padding-bottom:12px}
+.tile .client{color:rgba(255,255,255,.85)}
+.tile .grip,.tile:hover .grip{color:rgba(255,255,255,.75)}
+.tile-head .icon-btn{color:#fff}
+.tile-head .icon-btn:hover{background:rgba(255,255,255,.2);border-color:transparent;color:#fff}
+.tile-meta .pill{background:rgba(255,255,255,.2);border-color:transparent;color:#fff}
+.tile-meta button.pill:hover{background:rgba(255,255,255,.32);border-color:transparent}
+.tile-meta .pill::before{background:#fff}
+.tile-meta .chip.overdue{background:#fff;color:var(--bad)}
+.tile-meta .chip.soon{background:#fff;color:#a85a07}
+.tile-meta .av{border-color:#fff}
+.tile .notes{border-top:0}
+.tile :focus-visible{outline-color:currentColor}
 .tile.size-l{grid-column:span 2}
 .tile.is-done{opacity:.72}
 .tile.is-done h3{text-decoration:line-through;text-decoration-thickness:1px}
@@ -447,7 +462,9 @@ const STATUS = [
   { id: 'erledigt', label: 'Erledigt' }
 ];
 const statusLabel = id => (STATUS.find(s => s.id === id) || STATUS[0]).label;
-const COLORS = ['#0d7a6e', '#2563eb', '#7c3aed', '#c0267a', '#e0561b', '#c79a06', '#2f9a48', '#55636b'];
+const COLORS = ['#0d7a6e', '#2563eb', '#7c3aed', '#c0267a', '#c2410c', '#a16207', '#15803d', '#55636b'];
+const COLOR_FIX = { '#e0561b': '#c2410c', '#c79a06': '#a16207', '#2f9a48': '#15803d' };
+const fixColor = c => COLOR_FIX[c] || c;
 const DAY_CAP = 8;
 
 /* ---------- Zustand ---------- */
@@ -472,7 +489,7 @@ const byOrder = (a, b) => (a.order ?? 0) - (b.order ?? 0) || String(a.title).loc
 const notesOf = pid => [...S.notes.values()].filter(n => n.projectId === pid);
 const sortNotes = list => list.slice().sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0) || (a.createdAt || 0) - (b.createdAt || 0));
 const proj = id => S.projects.get(id);
-const projColor = id => (proj(id) && proj(id).color) || 'var(--muted)';
+const projColor = id => (proj(id) && fixColor(proj(id).color)) || 'var(--muted)';
 function slotsOn(date, person = S.person) {
   return [...S.slots.values()]
     .filter(s => s.date === date && proj(s.projectId) && (person === 'all' || s.userId === person))
@@ -756,7 +773,7 @@ function noteItem(n) {
   );
 }
 function updateTile(el, p) {
-  el.style.setProperty('--c', p.color || COLORS[0]);
+  el.style.setProperty('--c', fixColor(p.color || COLORS[0]));
   el.classList.toggle('size-l', p.size === 'l');
   el.classList.toggle('is-done', p.status === 'erledigt');
   $('h3', el).textContent = p.title || 'Ohne Titel';
@@ -822,7 +839,7 @@ function destroySortables() { for (const s of S.sortables) { try { s.destroy(); 
 function slotCard(s, withHours = true) {
   const p = proj(s.projectId);
   const timeTxt = s.start ? `${s.start} · ${fmtH(s.hours)}` : fmtH(s.hours);
-  return h('div', { class: 'slot', 'data-slot': s.id, '--c': p.color || COLORS[0], tabindex: '0', role: 'button', 'aria-label': `${p.title}, ${timeTxt}, ${nameOf(s.userId)} – bearbeiten` },
+  return h('div', { class: 'slot', 'data-slot': s.id, '--c': fixColor(p.color || COLORS[0]), tabindex: '0', role: 'button', 'aria-label': `${p.title}, ${timeTxt}, ${nameOf(s.userId)} – bearbeiten` },
     h('div', { class: 'slot-title', text: p.title }),
     h('div', { class: 'slot-meta' }, s.userId ? avatar(s.userId, 'sm') : null, h('span', { class: 'num', text: timeTxt }),
       withHours && S.canWrite ? h('span', { class: 'slot-hrs no-drag' },
@@ -839,7 +856,7 @@ function renderWeek() {
 
   const pal = $('#palette');
   const act = activeProjects();
-  pal.replaceChildren(...(act.length ? act.map(p => h('div', { class: 'pchip', 'data-project': p.id, '--c': p.color || COLORS[0], title: p.title }, h('span', { text: p.title }))) : [h('p', { class: 'hint', text: 'Noch keine aktiven Projekte.' })]));
+  pal.replaceChildren(...(act.length ? act.map(p => h('div', { class: 'pchip', 'data-project': p.id, '--c': fixColor(p.color || COLORS[0]), title: p.title }, h('span', { text: p.title }))) : [h('p', { class: 'hint', text: 'Noch keine aktiven Projekte.' })]));
 
   const grid = $('#weekgrid');
   grid.style.gridTemplateColumns = `repeat(${n}, minmax(150px, 1fr))`;
@@ -925,7 +942,7 @@ function renderDay() {
   for (const it of items) {
     const p = proj(it.s.projectId);
     const top = (it.a - H0 * 60) / 60 * PX, height = Math.max(26, (it.b - it.a) / 60 * PX - 3);
-    area.append(h('div', { class: 'block', 'data-slot': it.s.id, '--c': p.color || COLORS[0], tabindex: '0', role: 'button', 'aria-label': `${p.title} ab ${it.s.start}, ${fmtH(it.s.hours)} – bearbeiten`,
+    area.append(h('div', { class: 'block', 'data-slot': it.s.id, '--c': fixColor(p.color || COLORS[0]), tabindex: '0', role: 'button', 'aria-label': `${p.title} ab ${it.s.start}, ${fmtH(it.s.hours)} – bearbeiten`,
       style: `top:${top + 1}px;height:${height}px;left:calc(${it.lane / lanes * 100}% + 4px);width:calc(${100 / lanes}% - 8px)` },
       h('div', { class: 'slot-title', text: p.title }),
       h('div', { class: 'slot-meta' }, it.s.userId ? avatar(it.s.userId, 'sm') : null, h('span', { class: 'num', text: `${it.s.start}–${fromMin(Math.min(24 * 60, it.b))}` })),
@@ -951,7 +968,7 @@ function renderDay() {
     const p = proj(pid);
     const hrs = list.filter(s => s.projectId === pid).reduce((a, s) => a + (Number(s.hours) || 0), 0);
     const open = sortNotes(notesOf(pid)).filter(n => !n.done);
-    return h('div', { class: 'todo-proj', '--c': p.color || COLORS[0] },
+    return h('div', { class: 'todo-proj', '--c': fixColor(p.color || COLORS[0]) },
       h('h5', {}, h('span', { text: p.title }), h('span', { class: 'num', text: fmtH(hrs) })),
       open.length ? h('ul', { class: 'notes' }, open.map(noteItem)) : h('p', { class: 'hint', style: 'margin:2px 0', text: 'Keine offenen Notizen.' }),
       h('form', { class: 'note-add write-only', 'data-project': pid }, h('input', { type: 'text', placeholder: 'Notiz hinzufügen …', 'aria-label': `Notiz zu ${p.title}`, maxlength: '2000', autocomplete: 'off' }), h('button', { class: 'icon-btn', type: 'submit', 'aria-label': 'Notiz speichern' }, svg(ICON.plus))));
@@ -976,7 +993,7 @@ function closeModal() { if (modalClose) modalClose(); }
 function openProjectDialog(id) {
   const p = id ? proj(id) : null;
   if (id && !p) return;
-  const st = { color: (p && p.color) || COLORS[[...S.projects.values()].length % COLORS.length], size: (p && p.size) || 'm', members: [...((p && p.members) || (S.me ? [S.me] : []))] };
+  const st = { color: (p && fixColor(p.color)) || COLORS[[...S.projects.values()].length % COLORS.length], size: (p && p.size) || 'm', members: [...((p && p.members) || (S.me ? [S.me] : []))] };
   const fTitle = h('input', { type: 'text', id: 'f-title', required: true, maxlength: '120', value: p ? p.title : '' });
   const fClient = h('input', { type: 'text', id: 'f-client', maxlength: '120', value: p ? (p.client || '') : '', placeholder: 'z. B. PlanAPP' });
   const fStatus = h('select', { id: 'f-status' }, STATUS.map(s => h('option', { value: s.id, text: s.label })));
