@@ -155,7 +155,34 @@ button.pill:hover{border-color:var(--accent)}
 .av.sm{width:20px;height:20px;font-size:9px;border-width:1.5px}
 
 .notes{list-style:none;margin:0;padding:0 8px;display:grid;gap:1px;border-top:1px solid var(--line)}
-.tile.size-l .notes{grid-template-columns:1fr 1fr;column-gap:12px}
+.tile.size-l .jobs{grid-template-columns:1fr 1fr;column-gap:0}
+.tile.size-l .job:nth-child(odd){border-right:1px solid var(--line)}
+.jobs{display:grid}
+.jobs:empty::before{content:"Noch keine Jobs. Unten einen anlegen.";display:block;padding:14px 12px;color:var(--muted);font-size:13.5px}
+.jobs[data-empty="filtered"]:empty::before{content:"Kein Job passt zum Filter."}
+.job{border-bottom:1px solid var(--line);padding:9px 0 2px;min-width:0}
+.job-head{display:flex;align-items:center;gap:6px;padding:0 6px 0 8px}
+.job-grip{color:var(--line);cursor:grab;display:inline-flex;flex:none}
+.job:hover .job-grip{color:var(--muted)}
+.job-grip svg{width:12px;height:16px}
+.job-title{flex:1;min-width:0;font-size:15px;line-height:1.3;overflow-wrap:anywhere}
+.job.is-done .job-title{text-decoration:line-through;color:var(--muted)}
+.job-actions{display:flex;flex:none}
+.job-actions .icon-btn{width:26px;height:26px}
+.job-meta{display:flex;flex-wrap:wrap;align-items:center;gap:5px;padding:5px 10px 4px 26px}
+.job-meta:empty{display:none}
+.job .notes{padding:0 8px 0 20px;border-top:0}
+.job .note{padding:4px 4px}
+.job .note-add{border-top:0;padding:2px 10px 8px 26px;margin-top:0}
+.job .note-add input{min-height:30px;padding:5px 9px;font-size:13.5px}
+.job .more{padding-left:26px}
+.done-toggle{border-bottom:1px solid var(--line);padding:6px 12px}
+.job-add{display:flex;gap:6px;padding:9px 10px 10px;background:var(--surface-2);margin-top:auto}
+.job-add input{flex:1;min-width:0;border:1px dashed var(--line);background:var(--surface);border-radius:8px;padding:7px 10px;min-height:34px;font-weight:500}
+.job-add input:focus{border-style:solid;border-color:var(--accent);outline:none}
+.pal-client{font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-top:8px;padding-left:8px;border-left:3px solid var(--c)}
+.pal-client:first-child{margin-top:0}
+.slot-client{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);overflow-wrap:anywhere;line-height:1.3}
 .note{display:grid;grid-template-columns:22px 1fr auto;gap:6px;align-items:start;padding:6px 4px;border-bottom:1px dashed var(--line)}
 .note:last-child{border-bottom:0}
 .chk{width:18px;height:18px;margin-top:2px;border:1.5px solid var(--muted);border-radius:5px;background:transparent;padding:0;display:grid;place-items:center}
@@ -290,7 +317,8 @@ button.pill:hover{border-color:var(--accent)}
 }
 @media (max-width:640px){
   .tile.size-l{grid-column:span 1}
-  .tile.size-l .notes{grid-template-columns:1fr}
+  .tile.size-l .jobs{grid-template-columns:1fr}
+  .tile.size-l .job:nth-child(odd){border-right:0}
   .brand span{display:none}
   .form .row2{grid-template-columns:1fr}
   .note .del{opacity:1}
@@ -318,14 +346,14 @@ button.pill:hover{border-color:var(--accent)}
   <!-- KACHELN -->
   <section class="view" id="view-board" aria-labelledby="tab-board">
     <div class="toolbar">
-      <input type="search" id="q" class="grow" placeholder="Projekte und Notizen durchsuchen" aria-label="Suchen">
+      <input type="search" id="q" class="grow" placeholder="Kunden, Jobs und Notizen durchsuchen" aria-label="Suchen">
       <div class="seg" id="status-filter" role="group" aria-label="Status filtern"></div>
       <label class="field" for="person-board">Person <select id="person-board" class="person-filter"></select></label>
       <label class="check" for="show-done"><input type="checkbox" id="show-done"> Erledigte zeigen</label>
       <div class="seg" id="density" role="group" aria-label="Kachelgröße">
         <button data-d="s" type="button">Kompakt</button><button data-d="m" type="button">Normal</button><button data-d="l" type="button">Groß</button>
       </div>
-      <button class="btn primary write-only" id="new-project" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>Neues Projekt</button>
+      <button class="btn primary write-only" id="new-project" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>Neuer Kunde</button>
     </div>
     <div class="summary" id="summary"></div>
     <div class="grid" id="grid" data-density="m"></div>
@@ -344,9 +372,9 @@ button.pill:hover{border-color:var(--accent)}
       <label class="check" for="weekend"><input type="checkbox" id="weekend"> Wochenende</label>
     </div>
     <div class="week-layout">
-      <aside class="palette write-only" aria-label="Projekte zum Einplanen">
-        <h4>Projekte</h4>
-        <p class="hint">Projekt auf einen Tag ziehen, um Zeit einzuplanen. Planungen lassen sich zwischen Tagen verschieben.</p>
+      <aside class="palette write-only" aria-label="Jobs zum Einplanen">
+        <h4>Jobs</h4>
+        <p class="hint">Job auf einen Tag ziehen, um Zeit einzuplanen. Planungen lassen sich zwischen Tagen verschieben.</p>
         <div class="palette-list" id="palette"></div>
       </aside>
       <div class="weekgrid-wrap"><div class="weekgrid" id="weekgrid"></div></div>
@@ -473,8 +501,8 @@ try { prefs = JSON.parse(localStorage.getItem('pb-prefs-v1') || '{}') || {}; } c
 const S = {
   db: null, user: null, me: null, prof: {}, teamData: new Map(), allowed: [], isAdmin: false, teamDialogOpen: false,
   canWrite: true, writeKnown: false,
-  projects: new Map(), notes: new Map(), slots: new Map(), team: new Set(),
-  loaded: { projects: false, notes: false, slots: false },
+  projects: new Map(), clients: new Map(), notes: new Map(), slots: new Map(), team: new Set(),
+  loaded: { projects: false, clients: false, notes: false, slots: false }, confirmed: null, openDone: new Set(),
   view: 'board', weekStart: monday(new Date()), day: today(),
   person: prefs.person || 'all', q: '', status: 'all',
   showDone: !!prefs.showDone, density: prefs.density || 'm', weekend: !!prefs.weekend,
@@ -485,11 +513,22 @@ function savePrefs() {
 }
 
 /* ---------- Abgeleitete Daten ---------- */
-const byOrder = (a, b) => (a.order ?? 0) - (b.order ?? 0) || String(a.title).localeCompare(String(b.title), 'de');
+const NO_CLIENT = '_ohne';
+const byOrder = (a, b) => (a.order ?? 0) - (b.order ?? 0) || String(a.title || a.name || '').localeCompare(String(b.title || b.name || ''), 'de');
 const notesOf = pid => [...S.notes.values()].filter(n => n.projectId === pid);
 const sortNotes = list => list.slice().sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0) || (a.createdAt || 0) - (b.createdAt || 0));
 const proj = id => S.projects.get(id);
-const projColor = id => (proj(id) && fixColor(proj(id).color)) || 'var(--muted)';
+const client = id => S.clients.get(id);
+const clientOf = p => (p && p.clientId && S.clients.get(p.clientId)) || null;
+const clientName = p => (clientOf(p) && clientOf(p).name) || (p && p.client) || 'Ohne Kunde';
+const jobColor = p => fixColor((clientOf(p) && clientOf(p).color) || (p && p.color) || COLORS[0]);
+const projColor = id => proj(id) ? jobColor(proj(id)) : 'var(--muted)';
+const jobsOf = cid => [...S.projects.values()].filter(p => cid === NO_CLIENT ? !clientOf(p) : p.clientId === cid).sort(byOrder);
+function clientsSorted() {
+  const list = [...S.clients.values()].sort(byOrder);
+  if ([...S.projects.values()].some(p => !clientOf(p))) list.push({ id: NO_CLIENT, name: 'Ohne Kunde', color: '#55636b', virtual: true });
+  return list;
+}
 function slotsOn(date, person = S.person) {
   return [...S.slots.values()]
     .filter(s => s.date === date && proj(s.projectId) && (person === 'all' || s.userId === person))
@@ -506,7 +545,11 @@ function personHasWeekSlot(pid, person) {
   for (const s of S.slots.values()) if (s.projectId === pid && s.userId === person && s.date >= from && s.date <= to) return true;
   return false;
 }
-function activeProjects() { return [...S.projects.values()].filter(p => p.status !== 'erledigt').sort(byOrder); }
+function activeProjects() {
+  const co = new Map(clientsSorted().map((c, i) => [c.id, i]));
+  const ci = p => co.get(clientOf(p) ? p.clientId : NO_CLIENT) ?? 999;
+  return [...S.projects.values()].filter(p => p.status !== 'erledigt').sort((a, b) => ci(a) - ci(b) || byOrder(a, b));
+}
 
 /* ---------- Personen ---------- */
 function allPeopleIds() {
@@ -584,6 +627,7 @@ async function write(key, fn, okMsg) {
 const pDoc = id => S.db.collection('projects').doc(id);
 const nDoc = id => S.db.collection('notes').doc(id);
 const sDoc = id => S.db.collection('slots').doc(id);
+const cDoc = id => S.db.collection('clients').doc(id);
 
 function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
@@ -607,20 +651,43 @@ async function deleteNote(id) {
   const ok = await write('notes/' + id, () => nDoc(id).delete());
   if (ok) toast('Notiz gelöscht');
 }
+async function saveClient(id, data) {
+  if (id) {
+    const c = client(id); S.clients.set(id, { ...c, ...data }); queueRender();
+    return write('clients/' + id, () => cDoc(id).update(data), 'Kunde gespeichert');
+  }
+  const nid = newId();
+  const minOrder = Math.min(0, ...[...S.clients.values()].map(c => c.order ?? 0));
+  const body = { name: '', color: COLORS[S.clients.size % COLORS.length], size: 'm', ...data, order: minOrder - 1000, createdBy: S.me || null, createdAt: Date.now() };
+  S.clients.set(nid, { ...body, id: nid }); queueRender();
+  const ok = await write('clients/' + nid, () => cDoc(nid).set(body), 'Kunde angelegt');
+  if (!ok) { S.clients.delete(nid); queueRender(); return null; }
+  return nid;
+}
+async function deleteClient(id) {
+  const c = client(id); if (!c) return;
+  const jobs = jobsOf(id);
+  S.clients.delete(id); queueRender();
+  const ok = await write('clients/' + id, () => cDoc(id).delete());
+  if (!ok) return;
+  for (const j of jobs) await deleteProject(j.id, true);
+  toast(`„${c.name}“ gelöscht`);
+}
 async function saveProject(id, data) {
   if (id) {
     const p = proj(id); S.projects.set(id, { ...p, ...data }); queueRender();
-    return write('projects/' + id, () => pDoc(id).update(data), 'Projekt gespeichert');
+    return write('projects/' + id, () => pDoc(id).update(data), 'Job gespeichert');
   }
   const nid = newId();
-  const minOrder = Math.min(0, ...[...S.projects.values()].map(p => p.order ?? 0));
-  const body = { title: '', client: '', status: 'offen', due: '', color: COLORS[0], size: 'm', members: [], ...data, order: minOrder - 1000, createdBy: S.me || null, createdAt: Date.now() };
+  const sib = [...S.projects.values()].filter(p => p.clientId === data.clientId);
+  const maxOrder = Math.max(0, ...sib.map(p => p.order ?? 0));
+  const body = { title: '', clientId: '', status: 'offen', due: '', members: S.me ? [S.me] : [], ...data, order: maxOrder + 1000, createdBy: S.me || null, createdAt: Date.now() };
   S.projects.set(nid, { ...body, id: nid }); queueRender();
-  const ok = await write('projects/' + nid, () => pDoc(nid).set(body), 'Projekt angelegt');
+  const ok = await write('projects/' + nid, () => pDoc(nid).set(body), 'Job angelegt');
   if (!ok) { S.projects.delete(nid); queueRender(); }
   return ok;
 }
-async function deleteProject(id) {
+async function deleteProject(id, silent) {
   const p = proj(id); if (!p) return;
   const nIds = notesOf(id).map(n => n.id);
   const sIds = [...S.slots.values()].filter(s => s.projectId === id).map(s => s.id);
@@ -629,7 +696,7 @@ async function deleteProject(id) {
   if (!ok) return;
   for (const n of nIds) { S.notes.delete(n); await write('notes/' + n, () => nDoc(n).delete()); }
   for (const s of sIds) { S.slots.delete(s); await write('slots/' + s, () => sDoc(s).delete()); }
-  toast(`„${p.title}“ gelöscht`);
+  if (!silent) toast(`„${p.title}“ gelöscht`);
 }
 async function saveSlot(id, data) {
   if (id) {
@@ -648,6 +715,44 @@ async function deleteSlot(id) {
   S.slots.delete(id); queueRender();
   const ok = await write('slots/' + id, () => sDoc(id).delete());
   if (ok) toast('Planung entfernt');
+}
+
+/* Einmalige Umstellung: bisherige Projekte nach Feld „Kunde“ zu Kunden-Kacheln bündeln */
+let migrated = false;
+async function migrateClients() {
+  if (migrated || !S.isAdmin || !S.canWrite || !S.db) return;
+  if (!(S.confirmed && S.confirmed.projects && S.confirmed.clients)) return;
+  migrated = true;
+  const orphans = [...S.projects.values()].filter(p => !clientOf(p)).sort(byOrder);
+  if (!orphans.length) return;
+  const slug = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'kunde';
+  const groups = new Map();
+  for (const p of orphans) {
+    const name = (p.client || '').trim() || (p.title || 'Ohne Kunde').trim();
+    const key = name.toLowerCase();
+    if (!groups.has(key)) groups.set(key, { name, jobs: [] });
+    groups.get(key).jobs.push(p);
+  }
+  let i = 0;
+  for (const g of groups.values()) {
+    const existing = [...S.clients.values()].find(c => String(c.name).trim().toLowerCase() === g.name.toLowerCase());
+    const cid = existing ? existing.id : 'c-' + slug(g.name);
+    if (!existing) {
+      const body = { name: g.name, color: fixColor(g.jobs[0].color || COLORS[i % COLORS.length]), size: g.jobs.some(j => j.size === 'l') ? 'l' : 'm', order: g.jobs[0].order ?? i * 1000, createdBy: S.me || null, createdAt: Date.now() };
+      S.clients.set(cid, { ...body, id: cid });
+      const ok = await write('clients/' + cid, () => cDoc(cid).set(body));
+      if (!ok) { S.clients.delete(cid); queueRender(); return; }
+    }
+    let o = 1000;
+    for (const j of g.jobs) {
+      const patch = { clientId: cid, order: o }; o += 1000;
+      S.projects.set(j.id, { ...j, ...patch });
+      await write('projects/' + j.id, () => pDoc(j.id).update(patch));
+    }
+    i++;
+  }
+  queueRender();
+  toast(`${groups.size} Kunden-Kachel${groups.size === 1 ? '' : 'n'} aus deinen Projekten angelegt`);
 }
 
 /* ---------- Rendering ---------- */
@@ -683,19 +788,28 @@ function renderPersonFilters() {
   }
 }
 
-/* Kacheln */
-function visibleProjects() {
+/* Kacheln (je Kunde) */
+const filtersActive = () => !!(S.q.trim() || S.person !== 'all' || S.status !== 'all');
+function jobVisible(p, clientMatch, cid) {
+  if (S.status === 'all' && !S.showDone && !S.openDone.has(cid) && p.status === 'erledigt') return false;
+  if (S.status !== 'all' && p.status !== S.status) return false;
+  if (S.person !== 'all' && !(p.members || []).includes(S.person) && !personHasWeekSlot(p.id, S.person)) return false;
   const q = S.q.trim().toLowerCase();
-  return [...S.projects.values()].filter(p => {
-    if (S.status === 'all' && !S.showDone && p.status === 'erledigt') return false;
-    if (S.status !== 'all' && p.status !== S.status) return false;
-    if (S.person !== 'all' && !(p.members || []).includes(S.person) && !personHasWeekSlot(p.id, S.person)) return false;
-    if (q) {
-      const hay = [p.title, p.client, ...notesOf(p.id).map(n => n.text)].join(' ').toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  }).sort(byOrder);
+  if (q && !clientMatch) {
+    const hay = [p.title, ...notesOf(p.id).map(n => n.text)].join(' ').toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  return true;
+}
+function visibleClients() {
+  const q = S.q.trim().toLowerCase();
+  const out = [];
+  for (const c of clientsSorted()) {
+    const clientMatch = !!q && String(c.name || '').toLowerCase().includes(q);
+    const jobs = jobsOf(c.id).filter(p => jobVisible(p, clientMatch, c.id));
+    if (jobs.length || clientMatch || !filtersActive()) out.push({ c, jobs });
+  }
+  return out;
 }
 function renderSummary() {
   const act = activeProjects();
@@ -703,9 +817,11 @@ function renderSummary() {
   let wk = 0; const ws = monday(new Date()); const from = ymd(ws), to = ymd(addDays(ws, 6));
   for (const s of S.slots.values()) if (s.date >= from && s.date <= to && proj(s.projectId) && (S.person === 'all' || s.userId === S.person)) wk += Number(s.hours) || 0;
   const overdue = act.filter(p => p.due && parseYmd(p.due) < today()).length;
+  const activeClients = new Set(act.map(p => clientOf(p) ? p.clientId : NO_CLIENT)).size;
   const stat = (n, l) => h('span', { class: 'stat' }, h('b', { text: n }), l);
   $('#summary').replaceChildren(
-    stat(act.length, 'aktive Projekte'),
+    stat(activeClients, activeClients === 1 ? 'Kunde aktiv' : 'Kunden aktiv'),
+    stat(act.length, act.length === 1 ? 'offener Job' : 'offene Jobs'),
     stat(act.filter(p => p.status === 'arbeit').length, 'in Arbeit'),
     stat(act.filter(p => p.status === 'wartet').length, 'warten auf Kunde'),
     stat(openNotes, 'offene Notizen'),
@@ -724,45 +840,68 @@ function renderBoard() {
   grid.dataset.density = S.density;
   for (const b of $$('#density button')) b.setAttribute('aria-pressed', String(b.dataset.d === S.density));
   $('#show-done').checked = S.showDone;
-  const list = visibleProjects();
+  const list = visibleClients();
   const existing = new Map($$(':scope > .tile', grid).map(el => [el.dataset.id, el]));
-  const keep = new Set(list.map(p => p.id));
+  const keep = new Set(list.map(x => x.c.id));
   for (const [id, el] of existing) if (!keep.has(id)) el.remove();
-  list.forEach((p, i) => {
-    let el = existing.get(p.id);
-    if (!el) el = buildTile(p.id);
-    updateTile(el, p);
+  list.forEach(({ c, jobs }, i) => {
+    let el = existing.get(c.id);
+    if (!el) el = buildTile(c.id);
+    updateTile(el, c, jobs);
     const at = grid.children[i];
     if (at !== el) grid.insertBefore(el, at || null);
   });
   const empty = $('#board-empty');
-  const loading = !S.initDone || (S.db && !S.loaded.projects);
+  const loading = !S.initDone || (S.db && !(S.loaded.projects && S.loaded.clients));
   if (!list.length) {
     empty.hidden = false;
-    if (loading) empty.replaceChildren(h('p', { text: 'Projekte werden geladen …' }));
-    else if (S.projects.size) empty.replaceChildren(h('h2', { text: 'Keine Treffer' }), h('p', { text: 'Kein Projekt passt zu Suche oder Filter.' }), h('button', { class: 'btn', type: 'button', onclick: resetFilters }, 'Filter zurücksetzen'));
-    else empty.replaceChildren(h('h2', { text: 'Noch keine Projekte' }), h('p', { text: 'Jede Kachel ist ein Projekt. Lege das erste an und schreib Notizen direkt hinein.' }), S.canWrite ? h('button', { class: 'btn primary', type: 'button', onclick: () => openProjectDialog() }, 'Neues Projekt') : null);
+    if (loading) empty.replaceChildren(h('p', { text: 'Kunden werden geladen …' }));
+    else if (S.clients.size || S.projects.size) empty.replaceChildren(h('h2', { text: 'Keine Treffer' }), h('p', { text: 'Kein Kunde und kein Job passt zu Suche oder Filter.' }), h('button', { class: 'btn', type: 'button', onclick: resetFilters }, 'Filter zurücksetzen'));
+    else empty.replaceChildren(h('h2', { text: 'Noch keine Kunden' }), h('p', { text: 'Jede Kachel ist ein Kunde. Leg einen an und trag darin seine Jobs ein.' }), S.canWrite ? h('button', { class: 'btn primary', type: 'button', onclick: () => openClientDialog() }, 'Neuer Kunde') : null);
   } else empty.hidden = true;
   ensureBoardSortable();
 }
 function resetFilters() { S.q = ''; $('#q').value = ''; S.status = 'all'; S.person = 'all'; savePrefs(); queueRender(); }
-function buildTile(id) {
-  const input = h('input', { type: 'text', placeholder: 'Notiz hinzufügen …', 'aria-label': 'Neue Notiz', maxlength: '2000', autocomplete: 'off' });
-  const el = h('article', { class: 'tile', 'data-id': id },
+function buildTile(cid) {
+  const jobsEl = h('div', { class: 'jobs' });
+  const el = h('article', { class: 'tile', 'data-id': cid },
     h('div', { class: 'tile-head' },
       h('span', { class: 'grip write-only' }, svg(ICON.grip)),
-      h('div', { class: 'tile-titles' }, h('h3', {}), h('div', { class: 'client' })),
+      h('div', { class: 'tile-titles' }, h('h3', {})),
       h('div', { class: 'tile-actions no-drag' },
-        h('button', { class: 'icon-btn write-only', type: 'button', 'data-act': 'plan', 'aria-label': 'Zeit einplanen', title: 'Zeit einplanen' }, svg(ICON.cal)),
-        h('button', { class: 'icon-btn write-only', type: 'button', 'data-act': 'edit', 'aria-label': 'Projekt bearbeiten', title: 'Projekt bearbeiten' }, svg(ICON.edit)))
+        h('button', { class: 'icon-btn write-only', type: 'button', 'data-act': 'edit-client', 'aria-label': 'Kunde bearbeiten', title: 'Kunde bearbeiten' }, svg(ICON.edit)))
     ),
     h('div', { class: 'tile-meta' }),
+    jobsEl,
+    h('button', { class: 'more done-toggle', type: 'button', 'data-act': 'done-jobs', hidden: true }),
+    h('form', { class: 'job-add write-only', 'data-client': cid },
+      h('input', { type: 'text', placeholder: 'Neuer Job …', 'aria-label': 'Neuen Job anlegen', maxlength: '120', autocomplete: 'off' }),
+      h('button', { class: 'icon-btn', type: 'submit', 'aria-label': 'Job anlegen', title: 'Job anlegen' }, svg(ICON.plus)))
+  );
+  if (window.Sortable) {
+    el._sortable = Sortable.create(jobsEl, {
+      group: 'jobs', handle: '.job-grip', draggable: '.job', animation: 150, ghostClass: 'tile-ghost',
+      delayOnTouchOnly: true, delay: 180, disabled: !S.canWrite,
+      onStart() { S.dragging = true; },
+      onEnd(evt) { S.dragging = false; onJobDrop(evt); if (S.pending) { S.pending = false; queueRender(); } }
+    });
+  }
+  return el;
+}
+function buildJob(pid) {
+  const input = h('input', { type: 'text', placeholder: 'Notiz …', 'aria-label': 'Neue Notiz', maxlength: '2000', autocomplete: 'off' });
+  return h('section', { class: 'job', 'data-job': pid },
+    h('div', { class: 'job-head' },
+      h('span', { class: 'job-grip write-only', title: 'Job verschieben' }, svg(ICON.grip)),
+      h('h4', { class: 'job-title' }),
+      h('div', { class: 'job-actions' },
+        h('button', { class: 'icon-btn write-only', type: 'button', 'data-act': 'plan', 'aria-label': 'Zeit einplanen', title: 'Zeit einplanen' }, svg(ICON.cal)),
+        h('button', { class: 'icon-btn write-only', type: 'button', 'data-act': 'edit', 'aria-label': 'Job bearbeiten', title: 'Job bearbeiten' }, svg(ICON.edit)))),
+    h('div', { class: 'job-meta' }),
     h('ul', { class: 'notes', 'aria-label': 'Notizen' }),
     h('button', { class: 'more', type: 'button', 'data-act': 'more', hidden: true }),
-    h('form', { class: 'note-add write-only', 'data-project': id }, input,
-      h('button', { class: 'icon-btn', type: 'submit', 'aria-label': 'Notiz speichern' }, svg(ICON.plus)))
-  );
-  return el;
+    h('form', { class: 'note-add write-only', 'data-project': pid }, input,
+      h('button', { class: 'icon-btn', type: 'submit', 'aria-label': 'Notiz speichern' }, svg(ICON.plus))));
 }
 function noteItem(n) {
   return h('li', { class: 'note' + (n.done ? ' done' : ''), 'data-note': n.id },
@@ -772,36 +911,72 @@ function noteItem(n) {
     h('button', { class: 'icon-btn del write-only', type: 'button', 'data-act': 'del-note', 'aria-label': 'Notiz löschen' }, svg(ICON.x))
   );
 }
-function updateTile(el, p) {
-  el.style.setProperty('--c', fixColor(p.color || COLORS[0]));
-  el.classList.toggle('size-l', p.size === 'l');
-  el.classList.toggle('is-done', p.status === 'erledigt');
-  $('h3', el).textContent = p.title || 'Ohne Titel';
-  const cl = $('.client', el); cl.textContent = p.client || ''; cl.hidden = !p.client;
+function dueChip(p) {
+  if (!p.due) return null;
+  const d = parseYmd(p.due); const diff = Math.round((d - today()) / 86400000);
+  const cls = p.status !== 'erledigt' && diff < 0 ? 'overdue' : p.status !== 'erledigt' && diff <= 3 ? 'soon' : '';
+  return h('span', { class: `pill chip ${cls}`, title: 'Fällig am' }, diff === 0 ? 'heute fällig' : diff < 0 && p.status !== 'erledigt' ? `überfällig seit ${fmtD(d)}` : `fällig ${fmtD(d)}`);
+}
+function updateTile(el, c, jobs) {
+  el.style.setProperty('--c', fixColor(c.color || COLORS[0]));
+  el.classList.toggle('size-l', c.size === 'l');
+  el.classList.toggle('is-virtual', !!c.virtual);
+  $('h3', el).textContent = c.name || 'Ohne Namen';
+  const edit = $('[data-act="edit-client"]', el); if (edit) edit.hidden = !!c.virtual;
+  $('.job-add', el).hidden = !!c.virtual;
 
+  const all = jobsOf(c.id);
+  const open = all.filter(p => p.status !== 'erledigt');
   const meta = $('.tile-meta', el);
-  const parts = [h('button', { class: `pill st-${p.status || 'offen'}`, type: 'button', 'data-act': 'status', title: 'Status weiterschalten', disabled: !S.canWrite }, statusLabel(p.status))];
-  if (p.due) {
-    const d = parseYmd(p.due); const diff = Math.round((d - today()) / 86400000);
-    const cls = p.status !== 'erledigt' && diff < 0 ? 'overdue' : p.status !== 'erledigt' && diff <= 3 ? 'soon' : '';
-    parts.push(h('span', { class: `pill chip ${cls}`, title: 'Fällig am' }, diff === 0 ? 'heute fällig' : diff < 0 && p.status !== 'erledigt' ? `überfällig seit ${fmtD(d)}` : `fällig ${fmtD(d)}`));
-  }
-  const wh = weekHours(p.id);
+  const parts = [h('span', { class: 'pill chip' }, open.length ? `${open.length} offene${open.length === 1 ? 'r' : ''} Job${open.length === 1 ? '' : 's'}` : 'Keine offenen Jobs')];
+  const wh = all.reduce((a, p) => a + weekHours(p.id), 0);
   if (wh > 0) parts.push(h('button', { class: 'pill chip hours', type: 'button', 'data-act': 'to-week', title: 'In der Wochenplanung zeigen' }, `${fmtH(wh)} diese Woche`));
-  const mem = (p.members || []).slice(0, 5);
-  if (mem.length) parts.push(h('span', { class: 'avatars', title: (p.members || []).map(nameOf).join(', ') }, mem.map(m => avatar(m, 'sm'))));
+  const od = open.filter(p => p.due && parseYmd(p.due) < today()).length;
+  if (od) parts.push(h('span', { class: 'pill chip overdue' }, `${od} überfällig`));
+  const mem = [...new Set(open.flatMap(p => p.members || []))];
+  if (mem.length) parts.push(h('span', { class: 'avatars', title: mem.map(nameOf).join(', ') }, mem.slice(0, 5).map(m => avatar(m, 'sm'))));
   meta.replaceChildren(...parts);
 
-  const ul = $('.notes', el);
-  if (ul.contains(document.activeElement)) { el.dataset.stale = '1'; return; }
-  delete el.dataset.stale;
+  const box = $('.jobs', el);
+  const existing = new Map($$(':scope > .job', box).map(e => [e.dataset.job, e]));
+  const keep = new Set(jobs.map(p => p.id));
+  for (const [id, je] of existing) if (!keep.has(id) && !je.contains(document.activeElement)) je.remove();
+  jobs.forEach((p, i) => {
+    let je = existing.get(p.id);
+    if (!je) je = buildJob(p.id);
+    updateJob(je, p, c);
+    const at = box.children[i];
+    if (at !== je) box.insertBefore(je, at || null);
+  });
+  box.dataset.empty = all.length ? 'filtered' : 'none';
+  const doneCount = all.length - open.length;
+  const dt = $('.done-toggle', el);
+  if (S.status === 'all' && !S.showDone && doneCount) {
+    dt.hidden = false;
+    dt.textContent = S.openDone.has(c.id) ? 'Erledigte Jobs ausblenden' : `${doneCount} erledigte${doneCount === 1 ? 'r' : ''} Job${doneCount === 1 ? '' : 's'} zeigen`;
+  } else dt.hidden = true;
+}
+function updateJob(je, p, c) {
+  je.classList.toggle('is-done', p.status === 'erledigt');
+  $('.job-title', je).textContent = p.title || 'Ohne Titel';
+  const meta = $('.job-meta', je);
+  const parts = [h('button', { class: `pill st-${p.status || 'offen'}`, type: 'button', 'data-act': 'status', title: 'Status weiterschalten', disabled: !S.canWrite }, statusLabel(p.status)), dueChip(p)];
+  const wh = weekHours(p.id);
+  if (wh > 0) parts.push(h('button', { class: 'pill chip hours', type: 'button', 'data-act': 'to-week', title: 'In der Wochenplanung zeigen' }, `${fmtH(wh)} diese Woche`));
+  const mem = (p.members || []).slice(0, 4);
+  if (mem.length) parts.push(h('span', { class: 'avatars', title: (p.members || []).map(nameOf).join(', ') }, mem.map(m => avatar(m, 'sm'))));
+  meta.replaceChildren(...parts.filter(Boolean));
+
+  const ul = $('.notes', je);
+  if (ul.contains(document.activeElement)) { je.dataset.stale = '1'; return; }
+  delete je.dataset.stale;
   const all = sortNotes(notesOf(p.id));
-  const limit = S.expanded.has(p.id) ? Infinity : (p.size === 'l' ? 12 : S.density === 's' ? 4 : 6);
+  const limit = S.expanded.has(p.id) ? Infinity : (S.density === 's' ? 2 : c.size === 'l' ? 6 : 4);
   ul.replaceChildren(...all.slice(0, limit).map(noteItem));
-  const more = $('.more', el);
+  const more = $('.more', je);
   const rest = all.length - Math.min(limit, all.length);
   if (rest > 0) { more.hidden = false; more.textContent = `${rest} weitere Notiz${rest === 1 ? '' : 'en'} zeigen`; }
-  else if (S.expanded.has(p.id) && all.length > 6) { more.hidden = false; more.textContent = 'Weniger zeigen'; }
+  else if (S.expanded.has(p.id) && all.length > 4) { more.hidden = false; more.textContent = 'Weniger zeigen'; }
   else more.hidden = true;
 }
 function ensureBoardSortable() {
@@ -819,19 +994,35 @@ function ensureBoardSortable() {
     });
   }
   S.boardSortable.option('disabled', !S.canWrite);
+  for (const t of $$('#grid > .tile')) if (t._sortable) t._sortable.option('disabled', !S.canWrite);
 }
 function reorderTile(id) {
-  const ids = $$('#grid > .tile').map(e => e.dataset.id);
+  if (!client(id)) { queueRender(); return; }
+  const ids = $$('#grid > .tile').map(e => e.dataset.id).filter(x => client(x));
   const i = ids.indexOf(id); if (i < 0) return;
-  const prev = proj(ids[i - 1]), next = proj(ids[i + 1]);
+  const prev = client(ids[i - 1]), next = client(ids[i + 1]);
   let o;
   if (prev && next) o = ((prev.order ?? 0) + (next.order ?? 0)) / 2;
   else if (prev) o = (prev.order ?? 0) + 1000;
   else if (next) o = (next.order ?? 0) - 1000;
   else return;
-  const p = proj(id); if (!p) return;
-  S.projects.set(id, { ...p, order: o });
-  write('projects/' + id, () => pDoc(id).update({ order: o }));
+  const c = client(id);
+  S.clients.set(id, { ...c, order: o });
+  write('clients/' + id, () => cDoc(id).update({ order: o }));
+}
+function onJobDrop(evt) {
+  const pid = evt.item.dataset.job; const p = proj(pid); if (!p) return;
+  if (evt.from === evt.to && evt.oldIndex === evt.newIndex) return;
+  const toTile = evt.to.closest('.tile'); const cid = toTile && toTile.dataset.id;
+  if (!cid || !client(cid)) { queueRender(); return; }
+  const ids = $$(':scope > .job', evt.to).map(e => e.dataset.job);
+  const i = ids.indexOf(pid);
+  const prev = proj(ids[i - 1]), next = proj(ids[i + 1]);
+  const o = prev && next ? ((prev.order ?? 0) + (next.order ?? 0)) / 2 : prev ? (prev.order ?? 0) + 1000 : next ? (next.order ?? 0) - 1000 : 1000;
+  const patch = { order: o };
+  if (p.clientId !== cid) patch.clientId = cid;
+  S.projects.set(pid, { ...p, ...patch });
+  write('projects/' + pid, () => pDoc(pid).update(patch), patch.clientId ? `„${p.title}“ ist jetzt bei ${client(cid).name}` : null);
 }
 
 /* Woche */
@@ -839,7 +1030,8 @@ function destroySortables() { for (const s of S.sortables) { try { s.destroy(); 
 function slotCard(s, withHours = true) {
   const p = proj(s.projectId);
   const timeTxt = s.start ? `${s.start} · ${fmtH(s.hours)}` : fmtH(s.hours);
-  return h('div', { class: 'slot', 'data-slot': s.id, '--c': fixColor(p.color || COLORS[0]), tabindex: '0', role: 'button', 'aria-label': `${p.title}, ${timeTxt}, ${nameOf(s.userId)} – bearbeiten` },
+  return h('div', { class: 'slot', 'data-slot': s.id, '--c': jobColor(p), tabindex: '0', role: 'button', 'aria-label': `${clientName(p)}: ${p.title}, ${timeTxt}, ${nameOf(s.userId)} – bearbeiten` },
+    h('div', { class: 'slot-client', text: clientName(p) }),
     h('div', { class: 'slot-title', text: p.title }),
     h('div', { class: 'slot-meta' }, s.userId ? avatar(s.userId, 'sm') : null, h('span', { class: 'num', text: timeTxt }),
       withHours && S.canWrite ? h('span', { class: 'slot-hrs no-drag' },
@@ -855,8 +1047,11 @@ function renderWeek() {
   $('#week-label').replaceChildren(`KW ${isoWeek(start)} `, h('span', { style: 'color:var(--muted);font-weight:400;font-family:var(--font-body);font-size:14px', text: `${fmtD(start)} – ${fmtD(addDays(start, n - 1))}${addDays(start, n - 1).getFullYear()}` }));
 
   const pal = $('#palette');
-  const act = activeProjects();
-  pal.replaceChildren(...(act.length ? act.map(p => h('div', { class: 'pchip', 'data-project': p.id, '--c': fixColor(p.color || COLORS[0]), title: p.title }, h('span', { text: p.title }))) : [h('p', { class: 'hint', text: 'Noch keine aktiven Projekte.' })]));
+  const groups = clientsSorted().map(c => ({ c, jobs: jobsOf(c.id).filter(p => p.status !== 'erledigt') })).filter(g => g.jobs.length);
+  pal.replaceChildren(...(groups.length ? groups.flatMap(g => [
+    h('div', { class: 'pal-client', '--c': fixColor(g.c.color || COLORS[0]), text: g.c.name }),
+    ...g.jobs.map(p => h('div', { class: 'pchip', 'data-project': p.id, '--c': jobColor(p), title: `${g.c.name}: ${p.title}` }, h('span', { text: p.title })))
+  ]) : [h('p', { class: 'hint', text: 'Noch keine offenen Jobs.' })]));
 
   const grid = $('#weekgrid');
   grid.style.gridTemplateColumns = `repeat(${n}, minmax(150px, 1fr))`;
@@ -899,7 +1094,7 @@ function onDayAdd(evt) {
   if (item.dataset.project) {
     const pid = item.dataset.project; item.remove();
     const userId = S.person !== 'all' ? S.person : (S.me || null);
-    saveSlot(null, { projectId: pid, date, hours: 2, userId }).then(ok => { if (ok) toast(`${proj(pid) ? proj(pid).title : 'Projekt'}: 2 h am ${fmtD(parseYmd(date))} eingeplant`); });
+    saveSlot(null, { projectId: pid, date, hours: 2, userId }).then(ok => { if (ok) toast(`${proj(pid) ? proj(pid).title : 'Job'}: 2 h am ${fmtD(parseYmd(date))} eingeplant`); });
   } else if (item.dataset.slot) {
     saveSlot(item.dataset.slot, { date });
   }
@@ -942,8 +1137,9 @@ function renderDay() {
   for (const it of items) {
     const p = proj(it.s.projectId);
     const top = (it.a - H0 * 60) / 60 * PX, height = Math.max(26, (it.b - it.a) / 60 * PX - 3);
-    area.append(h('div', { class: 'block', 'data-slot': it.s.id, '--c': fixColor(p.color || COLORS[0]), tabindex: '0', role: 'button', 'aria-label': `${p.title} ab ${it.s.start}, ${fmtH(it.s.hours)} – bearbeiten`,
+    area.append(h('div', { class: 'block', 'data-slot': it.s.id, '--c': jobColor(p), tabindex: '0', role: 'button', 'aria-label': `${clientName(p)}: ${p.title} ab ${it.s.start}, ${fmtH(it.s.hours)} – bearbeiten`,
       style: `top:${top + 1}px;height:${height}px;left:calc(${it.lane / lanes * 100}% + 4px);width:calc(${100 / lanes}% - 8px)` },
+      h('div', { class: 'slot-client', text: clientName(p) }),
       h('div', { class: 'slot-title', text: p.title }),
       h('div', { class: 'slot-meta' }, it.s.userId ? avatar(it.s.userId, 'sm') : null, h('span', { class: 'num', text: `${it.s.start}–${fromMin(Math.min(24 * 60, it.b))}` })),
       it.s.note ? h('div', { class: 'slot-note', text: it.s.note }) : null));
@@ -968,12 +1164,13 @@ function renderDay() {
     const p = proj(pid);
     const hrs = list.filter(s => s.projectId === pid).reduce((a, s) => a + (Number(s.hours) || 0), 0);
     const open = sortNotes(notesOf(pid)).filter(n => !n.done);
-    return h('div', { class: 'todo-proj', '--c': fixColor(p.color || COLORS[0]) },
+    return h('div', { class: 'todo-proj', '--c': jobColor(p) },
+      h('div', { class: 'slot-client', text: clientName(p) }),
       h('h5', {}, h('span', { text: p.title }), h('span', { class: 'num', text: fmtH(hrs) })),
       open.length ? h('ul', { class: 'notes' }, open.map(noteItem)) : h('p', { class: 'hint', style: 'margin:2px 0', text: 'Keine offenen Notizen.' }),
       h('form', { class: 'note-add write-only', 'data-project': pid }, h('input', { type: 'text', placeholder: 'Notiz hinzufügen …', 'aria-label': `Notiz zu ${p.title}`, maxlength: '2000', autocomplete: 'off' }), h('button', { class: 'icon-btn', type: 'submit', 'aria-label': 'Notiz speichern' }, svg(ICON.plus))));
   });
-  todo.replaceChildren(h('h4', { text: 'Heute zu tun' }), h('p', { class: 'hint', style: 'margin:0', text: 'Offene Notizen der an diesem Tag geplanten Projekte.' }), ...(blocks.length ? blocks : [h('p', { class: 'hint', text: 'Für diesen Tag ist noch nichts geplant.' })]));
+  todo.replaceChildren(h('h4', { text: 'Heute zu tun' }), h('p', { class: 'hint', style: 'margin:0', text: 'Offene Notizen der an diesem Tag geplanten Jobs.' }), ...(blocks.length ? blocks : [h('p', { class: 'hint', text: 'Für diesen Tag ist noch nichts geplant.' })]));
   if (refocus) { const inp = $(`form.note-add[data-project="${CSS.escape(refocus.pid)}"] input`, todo); if (inp) { inp.value = refocus.value; inp.focus(); } }
 }
 
@@ -990,32 +1187,66 @@ function openModal(title, body, actions) {
 }
 function closeModal() { if (modalClose) modalClose(); }
 
-function openProjectDialog(id) {
-  const p = id ? proj(id) : null;
-  if (id && !p) return;
-  const st = { color: (p && fixColor(p.color)) || COLORS[[...S.projects.values()].length % COLORS.length], size: (p && p.size) || 'm', members: [...((p && p.members) || (S.me ? [S.me] : []))] };
-  const fTitle = h('input', { type: 'text', id: 'f-title', required: true, maxlength: '120', value: p ? p.title : '' });
-  const fClient = h('input', { type: 'text', id: 'f-client', maxlength: '120', value: p ? (p.client || '') : '', placeholder: 'z. B. PlanAPP' });
-  const fStatus = h('select', { id: 'f-status' }, STATUS.map(s => h('option', { value: s.id, text: s.label })));
-  fStatus.value = (p && p.status) || 'offen';
-  const fDue = h('input', { type: 'date', id: 'f-due', value: (p && p.due) || '' });
+function openClientDialog(id) {
+  const c = id ? client(id) : null;
+  if (id && !c) return;
+  const st = { color: (c && fixColor(c.color)) || COLORS[S.clients.size % COLORS.length], size: (c && c.size) || 'm' };
+  const fName = h('input', { type: 'text', id: 'c-name', required: true, maxlength: '120', value: c ? c.name : '', placeholder: 'z. B. PWP Holding' });
   const sw = h('div', { class: 'swatches', role: 'group', 'aria-label': 'Farbe' });
-  const drawSw = () => sw.replaceChildren(...COLORS.map(c => h('button', { type: 'button', class: 'swatch', '--c': c, 'aria-label': `Farbe ${c}`, 'aria-pressed': String(st.color === c), onclick: () => { st.color = c; drawSw(); } })));
+  const drawSw = () => sw.replaceChildren(...COLORS.map(col => h('button', { type: 'button', class: 'swatch', '--c': col, 'aria-label': `Farbe ${col}`, 'aria-pressed': String(st.color === col), onclick: () => { st.color = col; drawSw(); } })));
   drawSw();
   const sizeSeg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Kachelbreite' });
   const drawSize = () => sizeSeg.replaceChildren(...[['m', 'Normal'], ['l', 'Breit']].map(([v, l]) => h('button', { type: 'button', 'aria-pressed': String(st.size === v), onclick: () => { st.size = v; drawSize(); } }, l)));
   drawSize();
+  const form = h('form', { class: 'form', onsubmit: e => { e.preventDefault(); save(); } },
+    h('label', { class: 'lbl', for: 'c-name' }, 'Kundenname', fName),
+    h('div', { class: 'lbl' }, 'Farbe der Kachel', sw),
+    h('div', { class: 'lbl' }, 'Kachelbreite', sizeSeg),
+    h('button', { type: 'submit', hidden: true }));
+  async function save() {
+    const name = clean(fName.value, 120).trim();
+    if (!name) { fName.focus(); toast('Bitte einen Kundennamen eingeben.', true); return; }
+    closeModal();
+    const res = await saveClient(id || null, { name, color: st.color, size: st.size });
+    if (!id && res) setTimeout(() => { const inp = $(`.tile[data-id="${CSS.escape(res)}"] .job-add input`); if (inp) inp.focus(); }, 250);
+  }
+  openModal(c ? 'Kunde bearbeiten' : 'Neuer Kunde', form, [
+    c ? h('button', { class: 'btn danger left', type: 'button', onclick: () => confirmDeleteClient(id) }, svg(ICON.trash), 'Löschen') : null,
+    h('button', { class: 'btn', type: 'button', onclick: closeModal }, 'Abbrechen'),
+    h('button', { class: 'btn primary', type: 'button', onclick: save }, c ? 'Speichern' : 'Anlegen')
+  ].filter(Boolean));
+}
+function confirmDeleteClient(id) {
+  const c = client(id); if (!c) return;
+  const jobs = jobsOf(id);
+  const nn = jobs.reduce((a, p) => a + notesOf(p.id).length, 0);
+  const ns = [...S.slots.values()].filter(s => jobs.some(p => p.id === s.projectId)).length;
+  openModal(`„${c.name}“ löschen?`, h('p', { style: 'margin:0', text: `Der Kunde wird für alle gelöscht, zusammen mit ${jobs.length} Job${jobs.length === 1 ? '' : 's'}, ${nn} Notiz${nn === 1 ? '' : 'en'} und ${ns} Planung${ns === 1 ? '' : 'en'}. Das lässt sich nicht rückgängig machen.` }), [
+    h('button', { class: 'btn', type: 'button', onclick: closeModal }, 'Abbrechen'),
+    h('button', { class: 'btn primary', type: 'button', style: 'background:var(--bad);border-color:var(--bad);color:#fff', onclick: () => { closeModal(); deleteClient(id); } }, 'Endgültig löschen')
+  ]);
+}
+function openProjectDialog(id, opts = {}) {
+  const p = id ? proj(id) : null;
+  if (id && !p) return;
+  const clients = [...S.clients.values()].sort(byOrder);
+  if (!clients.length) { toast('Lege zuerst einen Kunden an.', true); return; }
+  const st = { members: [...((p && p.members) || (S.me ? [S.me] : []))] };
+  const fTitle = h('input', { type: 'text', id: 'f-title', required: true, maxlength: '120', value: p ? p.title : '', placeholder: 'z. B. Website-Relaunch' });
+  const fClient = h('select', { id: 'f-client' }, clients.map(c => h('option', { value: c.id, text: c.name })));
+  fClient.value = (p && clientOf(p) && p.clientId) || opts.clientId || clients[0].id;
+  const fStatus = h('select', { id: 'f-status' }, STATUS.map(s => h('option', { value: s.id, text: s.label })));
+  fStatus.value = (p && p.status) || 'offen';
+  const fDue = h('input', { type: 'date', id: 'f-due', value: (p && p.due) || '' });
 
   const chips = h('div', { class: 'people' });
   const drawChips = () => chips.replaceChildren(...(st.members.length ? st.members.map(m => h('span', { class: 'person' }, avatar(m, 'sm'), nameOf(m), h('button', { type: 'button', 'aria-label': `${nameOf(m)} entfernen`, onclick: () => { st.members = st.members.filter(x => x !== m); drawChips(); } }, '×'))) : [h('span', { class: 'hint', style: 'margin:0', text: 'Noch niemand zugeordnet.' })]));
   drawChips();
   const fPick = h('input', { type: 'text', id: 'f-pick', placeholder: 'Name eingeben …', autocomplete: 'off' });
   const pickList = h('div', { class: 'picker-list', hidden: true });
-  const showHits = async q => {
-    const hits = [];
+  const showHits = q => {
     const ql = q.trim().toLowerCase();
-    const roster = peopleSorted().filter(id => !ql || nameOf(id).toLowerCase().includes(ql));
-    const ids = [...new Set([...roster, ...hits.map(x => x.id)])].filter(x => !st.members.includes(x));
+    const ids = peopleSorted().filter(x => (!ql || nameOf(x).toLowerCase().includes(ql)) && !st.members.includes(x));
     pickList.hidden = false;
     pickList.replaceChildren(...(ids.length ? ids.slice(0, 10).map(pid => h('button', { type: 'button', onmousedown: e => e.preventDefault(), onclick: () => { st.members.push(pid); drawChips(); fPick.value = ''; pickList.hidden = true; fPick.focus(); } }, avatar(pid, 'sm'), nameOf(pid))) : [h('div', { class: 'none', text: 'Niemand gefunden. Neue Personen lädst du über „Team“ ein.' })]));
   };
@@ -1024,20 +1255,21 @@ function openProjectDialog(id) {
   fPick.addEventListener('blur', () => setTimeout(() => { pickList.hidden = true; }, 150));
 
   const form = h('form', { class: 'form', onsubmit: e => { e.preventDefault(); save(); } },
-    h('label', { class: 'lbl', for: 'f-title' }, 'Projektname', fTitle),
+    h('label', { class: 'lbl', for: 'f-title' }, 'Job', fTitle),
     h('div', { class: 'row2' }, h('label', { class: 'lbl', for: 'f-client' }, 'Kunde', fClient), h('label', { class: 'lbl', for: 'f-status' }, 'Status', fStatus)),
-    h('div', { class: 'row2' }, h('label', { class: 'lbl', for: 'f-due' }, 'Fällig am', fDue), h('div', { class: 'lbl' }, 'Kachelbreite', sizeSeg)),
-    h('div', { class: 'lbl' }, 'Farbe', sw),
+    h('div', { class: 'row2' }, h('label', { class: 'lbl', for: 'f-due' }, 'Fällig am', fDue), h('div')),
     h('div', { class: 'lbl' }, 'Team', chips, h('div', { class: 'picker' }, fPick, pickList)),
     h('button', { type: 'submit', hidden: true })
   );
   async function save() {
     const title = clean(fTitle.value, 120).trim();
-    if (!title) { fTitle.focus(); toast('Bitte einen Projektnamen eingeben.', true); return; }
+    if (!title) { fTitle.focus(); toast('Bitte einen Namen für den Job eingeben.', true); return; }
     closeModal();
-    await saveProject(id || null, { title, client: clean(fClient.value, 120).trim(), status: fStatus.value, due: fDue.value || '', color: st.color, size: st.size, members: st.members });
+    const data = { title, status: fStatus.value, due: fDue.value || '', members: st.members };
+    if (!p || p.clientId !== fClient.value) data.clientId = fClient.value;
+    await saveProject(id || null, data);
   }
-  openModal(p ? 'Projekt bearbeiten' : 'Neues Projekt', form, [
+  openModal(p ? 'Job bearbeiten' : 'Neuer Job', form, [
     p ? h('button', { class: 'btn danger left', type: 'button', onclick: () => confirmDelete(id) }, svg(ICON.trash), 'Löschen') : null,
     h('button', { class: 'btn', type: 'button', onclick: closeModal }, 'Abbrechen'),
     h('button', { class: 'btn primary', type: 'button', onclick: save }, p ? 'Speichern' : 'Anlegen')
@@ -1046,7 +1278,7 @@ function openProjectDialog(id) {
 function confirmDelete(id) {
   const p = proj(id); if (!p) return;
   const nn = notesOf(id).length, ns = [...S.slots.values()].filter(s => s.projectId === id).length;
-  openModal(`„${p.title}“ löschen?`, h('p', { style: 'margin:0', text: `Das Projekt wird für alle gelöscht, zusammen mit ${nn} Notiz${nn === 1 ? '' : 'en'} und ${ns} Planung${ns === 1 ? '' : 'en'}. Das lässt sich nicht rückgängig machen. Tipp: Mit dem Status „Erledigt“ bleibt es erhalten.` }), [
+  openModal(`Job „${p.title}“ löschen?`, h('p', { style: 'margin:0', text: `Der Job wird für alle gelöscht, zusammen mit ${nn} Notiz${nn === 1 ? '' : 'en'} und ${ns} Planung${ns === 1 ? '' : 'en'}. Das lässt sich nicht rückgängig machen. Tipp: Mit dem Status „Erledigt“ bleibt er erhalten.` }), [
     h('button', { class: 'btn', type: 'button', onclick: closeModal }, 'Abbrechen'),
     h('button', { class: 'btn primary', type: 'button', style: 'background:var(--bad);border-color:var(--bad);color:#fff', onclick: () => { closeModal(); deleteProject(id); } }, 'Endgültig löschen')
   ]);
@@ -1055,11 +1287,11 @@ function openSlotDialog({ id = null, projectId = '', date = ymd(today()), start 
   const s = id ? S.slots.get(id) : null;
   if (id && !s) return;
   if (!S.canWrite) return;
-  const choices = activeProjects();
-  if (s && proj(s.projectId) && !choices.find(p => p.id === s.projectId)) choices.unshift(proj(s.projectId));
-  if (!choices.length) { toast('Lege zuerst ein Projekt an.', true); return; }
-  const fProj = h('select', { id: 's-proj' }, choices.map(p => h('option', { value: p.id, text: p.title })));
-  fProj.value = s ? s.projectId : (projectId || choices[0].id);
+  const keepId = s ? s.projectId : projectId;
+  const groups = clientsSorted().map(c => ({ c, jobs: jobsOf(c.id).filter(p => p.status !== 'erledigt' || p.id === keepId) })).filter(g => g.jobs.length);
+  if (!groups.length) { toast('Lege zuerst einen Kunden mit einem Job an.', true); return; }
+  const fProj = h('select', { id: 's-proj' }, groups.map(g => h('optgroup', { label: g.c.name }, g.jobs.map(p => h('option', { value: p.id, text: p.title })))));
+  fProj.value = keepId || groups[0].jobs[0].id;
   const fDate = h('input', { type: 'date', id: 's-date', value: s ? s.date : date, required: true });
   const fStart = h('input', { type: 'time', id: 's-start', value: s ? (s.start || '') : start, step: '900' });
   const fHours = h('input', { type: 'number', id: 's-hours', min: '0.25', max: '24', step: '0.25', value: String(s ? s.hours : 2) });
@@ -1068,7 +1300,7 @@ function openSlotDialog({ id = null, projectId = '', date = ymd(today()), start 
   fUser.value = s ? (s.userId || '') : (S.person !== 'all' ? S.person : (S.me || ''));
   const fNote = h('input', { type: 'text', id: 's-note', maxlength: '200', value: s ? (s.note || '') : '', placeholder: 'z. B. Startseite Texte, Kundentermin …' });
   const form = h('form', { class: 'form', onsubmit: e => { e.preventDefault(); save(); } },
-    h('label', { class: 'lbl', for: 's-proj' }, 'Projekt', fProj),
+    h('label', { class: 'lbl', for: 's-proj' }, 'Kunde und Job', fProj),
     h('div', { class: 'row2' }, h('label', { class: 'lbl', for: 's-date' }, 'Datum', fDate), h('label', { class: 'lbl', for: 's-user' }, 'Person', fUser)),
     h('div', { class: 'row2' }, h('label', { class: 'lbl', for: 's-start' }, 'Beginn (optional)', fStart), h('label', { class: 'lbl', for: 's-hours' }, 'Dauer in Stunden', fHours)),
     h('label', { class: 'lbl', for: 's-note' }, 'Was steht an?', fNote),
@@ -1080,7 +1312,8 @@ function openSlotDialog({ id = null, projectId = '', date = ymd(today()), start 
     const data = { projectId: fProj.value, date: fDate.value, start: fStart.value || '', hours, userId: fUser.value || S.me || null, note: clean(fNote.value, 200).trim() };
     closeModal();
     const ok = await saveSlot(id, data);
-    if (ok) toast(id ? 'Planung gespeichert' : `${proj(data.projectId).title}: ${fmtH(hours)} am ${fmtD(parseYmd(data.date))} eingeplant`);
+    const p = proj(data.projectId);
+    if (ok) toast(id ? 'Planung gespeichert' : `${clientName(p)} – ${p.title}: ${fmtH(hours)} am ${fmtD(parseYmd(data.date))} eingeplant`);
   }
   openModal(s ? 'Planung bearbeiten' : 'Zeit einplanen', form, [
     s ? h('button', { class: 'btn danger left', type: 'button', onclick: () => { closeModal(); deleteSlot(id); } }, svg(ICON.trash), 'Entfernen') : null,
@@ -1133,7 +1366,7 @@ function bindStatic() {
   $('#show-done').addEventListener('change', e => { S.showDone = e.target.checked; savePrefs(); queueRender(); });
   $('#weekend').addEventListener('change', e => { S.weekend = e.target.checked; savePrefs(); queueRender(); });
   for (const sel of $$('.person-filter')) sel.addEventListener('change', e => { S.person = e.target.value; savePrefs(); e.target.blur(); queueRender(); });
-  $('#new-project').addEventListener('click', () => openProjectDialog());
+  $('#new-project').addEventListener('click', () => openClientDialog());
   $('#week-prev').addEventListener('click', () => { S.weekStart = addDays(S.weekStart, -7); queueRender(); });
   $('#week-next').addEventListener('click', () => { S.weekStart = addDays(S.weekStart, 7); queueRender(); });
   $('#week-today').addEventListener('click', () => { S.weekStart = monday(new Date()); queueRender(); });
@@ -1145,6 +1378,16 @@ function bindStatic() {
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && modalClose) { e.preventDefault(); closeModal(); } });
 
   document.addEventListener('submit', e => {
+    const jf = e.target.closest('form.job-add');
+    if (jf) {
+      e.preventDefault();
+      const inp = $('input', jf); const title = clean(inp.value, 120).trim();
+      if (!title || !client(jf.dataset.client)) return;
+      inp.value = '';
+      saveProject(null, { title, clientId: jf.dataset.client });
+      inp.focus();
+      return;
+    }
     const f = e.target.closest('form.note-add'); if (!f) return;
     e.preventDefault();
     const inp = $('input', f); const txt = inp.value;
@@ -1162,16 +1405,19 @@ function bindStatic() {
     const t = e.target;
     const act = t.closest('[data-act]');
     const tile = t.closest('.tile');
+    const job = t.closest('.job');
     if (act) {
       const a = act.dataset.act;
       const noteEl = act.closest('[data-note]');
       if (a === 'toggle' && noteEl) { const n = S.notes.get(noteEl.dataset.note); if (n) updateNote(n.id, { done: !n.done }); return; }
       if (a === 'del-note' && noteEl) { deleteNote(noteEl.dataset.note); return; }
       if (a === 'edit-note') { editNote(act); return; }
-      if (a === 'edit' && tile) { openProjectDialog(tile.dataset.id); return; }
-      if (a === 'plan' && tile) { openSlotDialog({ projectId: tile.dataset.id, date: ymd(today()) }); return; }
-      if (a === 'status' && tile) {
-        const p = proj(tile.dataset.id); if (!p || !S.canWrite) return;
+      if (a === 'edit-client' && tile) { openClientDialog(tile.dataset.id); return; }
+      if (a === 'edit' && job) { openProjectDialog(job.dataset.job); return; }
+      if (a === 'plan' && job) { openSlotDialog({ projectId: job.dataset.job, date: ymd(today()) }); return; }
+      if (a === 'done-jobs' && tile) { const id = tile.dataset.id; if (S.openDone.has(id)) S.openDone.delete(id); else S.openDone.add(id); queueRender(); return; }
+      if (a === 'status' && job) {
+        const p = proj(job.dataset.job); if (!p || !S.canWrite) return;
         const i = STATUS.findIndex(s => s.id === (p.status || 'offen'));
         const next = STATUS[(i + 1) % STATUS.length].id;
         S.projects.set(p.id, { ...p, status: next }); queueRender();
@@ -1179,7 +1425,7 @@ function bindStatic() {
         return;
       }
       if (a === 'to-week') { S.weekStart = monday(new Date()); setView('week'); return; }
-      if (a === 'more' && tile) { const id = tile.dataset.id; if (S.expanded.has(id)) S.expanded.delete(id); else S.expanded.add(id); queueRender(); return; }
+      if (a === 'more' && job) { const id = job.dataset.job; if (S.expanded.has(id)) S.expanded.delete(id); else S.expanded.add(id); queueRender(); return; }
       if ((a === 'h+' || a === 'h-')) { const sl = act.closest('[data-slot]'); if (sl) bumpHours(sl.dataset.slot, a === 'h+' ? 0.5 : -0.5); return; }
     }
     const addD = t.closest('[data-add-date]');
@@ -1265,18 +1511,21 @@ const COLOR_POOL = ['#0d7a6e', '#2563eb', '#7c3aed', '#c0267a', '#e0561b', '#a07
 const colorFor = id => { let x = 0; for (const ch of String(id)) x = (x * 31 + ch.charCodeAt(0)) >>> 0; return COLOR_POOL[x % COLOR_POOL.length]; };
 
 function subscribe() {
-  const confirmed = { projects: false, notes: false, slots: false };
+  const confirmed = { projects: false, clients: false, notes: false, slots: false };
+  S.confirmed = confirmed;
   let live = false;
   const timer = setTimeout(() => { if (!live) setSync(S.loaded.projects ? 'stale' : 'error'); if (!S.loaded.projects) banner('Die Daten sind gerade nicht erreichbar. Prüfe die Internetverbindung; die App verbindet sich weiter im Hintergrund.', true); }, 10000);
-  const done = () => { if (!live && confirmed.projects && confirmed.notes && confirmed.slots) { live = true; clearTimeout(timer); setSync('live'); banner(null); } };
+  const done = () => { if (!live && confirmed.projects && confirmed.clients && confirmed.notes && confirmed.slots) { live = true; clearTimeout(timer); setSync('live'); banner(null); } };
   const onErr = err => { clearTimeout(timer); console.error(err); setSync('error'); if (err && err.code === 'revoked') banner('Dein Zugang wurde entzogen oder ist abgelaufen. Melde dich neu an.', true); else banner('Die Live-Verbindung ist abgebrochen. Lade die Seite neu, um wieder zu verbinden.', true); };
   const sub = (name, map) => S.db.collection(name).onSnapshot(snap => {
     map.clear();
     for (const d of snap.docs) { const v = d.data(); if (v) map.set(d.id, { ...v, id: d.id }); }
     S.loaded[name] = true;
     if (!snap.metadata.fromCache) { confirmed[name] = true; done(); }
+    if (name === 'projects' || name === 'clients') migrateClients();
     queueRender();
   }, onErr);
+  sub('clients', S.clients);
   sub('projects', S.projects);
   sub('notes', S.notes);
   sub('slots', S.slots);
