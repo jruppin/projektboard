@@ -99,7 +99,16 @@ textarea{width:100%;resize:vertical;min-height:70px}
 .check input{accent-color:var(--accent);width:16px;height:16px}
 
 /* Kennzahlen */
-.summary{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.summary{display:flex;flex-wrap:wrap;gap:8px}
+.board-bar{display:flex;align-items:flex-start;justify-content:space-between;gap:10px 14px;margin-bottom:14px}
+.notes-all{flex:none;margin-left:auto}
+.notes-all svg,.notes-tg svg{width:15px;height:15px;transition:transform .15s}
+.notes-all[aria-expanded="false"] svg,.notes-tg[aria-expanded="false"] svg{transform:rotate(-90deg)}
+.job-actions .notes-tg{width:auto;min-width:26px;padding:0 4px;gap:2px;display:inline-flex;align-items:center;justify-content:center}
+.notes-tg .n{font-family:var(--font-mono);font-size:11px;font-weight:500;line-height:1}
+.notes-tg .n:empty{display:none}
+.job.notes-collapsed{padding-bottom:7px}
+.job.notes-collapsed .notes,.job.notes-collapsed .more,.job.notes-collapsed .note-add{display:none !important}
 .stat{display:flex;align-items:baseline;gap:6px;padding:6px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-size:13px;color:var(--muted)}
 .stat b{font-family:var(--font-mono);font-weight:500;font-size:14px;color:var(--ink)}
 
@@ -493,7 +502,10 @@ body.wk-dragging,body.wk-dragging *{cursor:grabbing !important;user-select:none}
       </div>
       <button class="btn primary write-only" id="new-project" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>Neuer Kunde</button>
     </div>
-    <div class="summary" id="summary"></div>
+    <div class="board-bar">
+      <div class="summary" id="summary"></div>
+      <button class="btn notes-all" id="notes-all" type="button" aria-expanded="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg><span>Alle Notizen einklappen</span></button>
+    </div>
     <div class="grid" id="grid" data-density="m"></div>
     <div class="empty" id="board-empty" hidden></div>
   </section>
@@ -614,7 +626,8 @@ const ICON = {
   check: '<path d="m3.5 8.5 3 3 6-7"/>',
   cal: '<rect x="2.5" y="3.5" width="11" height="10" rx="1.5"/><path d="M2.5 7h11M5.5 2v3M10.5 2v3"/>',
   grip: '<circle cx="6" cy="4" r=".9" fill="currentColor"/><circle cx="10" cy="4" r=".9" fill="currentColor"/><circle cx="6" cy="8" r=".9" fill="currentColor"/><circle cx="10" cy="8" r=".9" fill="currentColor"/><circle cx="6" cy="12" r=".9" fill="currentColor"/><circle cx="10" cy="12" r=".9" fill="currentColor"/>',
-  x: '<path d="m4 4 8 8M12 4l-8 8"/>'
+  x: '<path d="m4 4 8 8M12 4l-8 8"/>',
+  chev: '<path d="m4 6 4 4 4-4"/>'
 };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const pad = n => String(n).padStart(2, '0');
@@ -676,10 +689,11 @@ const S = {
   view: 'board', weekStart: monday(new Date()), day: today(), month: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   person: prefs.person || 'all', q: '', status: 'all',
   showDone: !!prefs.showDone, density: prefs.density || 'm', weekend: !!prefs.weekend,
+  notesOpen: prefs.notesOpen !== false, jobNotes: new Map(Object.entries(prefs.jobNotes || {}).filter(([, v]) => typeof v === 'boolean')),
   expanded: new Set(), dragging: false, pending: false, sortables: [], boardSortable: null
 };
 function savePrefs() {
-  try { localStorage.setItem('pb-prefs-v1', JSON.stringify({ person: S.person, showDone: S.showDone, density: S.density, weekend: S.weekend })); } catch (e) { /* egal */ }
+  try { localStorage.setItem('pb-prefs-v1', JSON.stringify({ person: S.person, showDone: S.showDone, density: S.density, weekend: S.weekend, notesOpen: S.notesOpen, jobNotes: Object.fromEntries(S.jobNotes) })); } catch (e) { /* egal */ }
 }
 
 /* ---------- Abgeleitete Daten ---------- */
@@ -1030,6 +1044,11 @@ function renderBoard() {
     else if (S.clients.size || S.projects.size) empty.replaceChildren(h('h2', { text: 'Keine Treffer' }), h('p', { text: 'Kein Kunde und kein Job passt zu Suche oder Filter.' }), h('button', { class: 'btn', type: 'button', onclick: resetFilters }, 'Filter zurücksetzen'));
     else empty.replaceChildren(h('h2', { text: 'Noch keine Kunden' }), h('p', { text: 'Jede Kachel ist ein Kunde. Leg einen an und trag darin seine Jobs ein.' }), S.canWrite ? h('button', { class: 'btn primary', type: 'button', onclick: () => openClientDialog() }, 'Neuer Kunde') : null);
   } else empty.hidden = true;
+  const allBtn = $('#notes-all');
+  const anyOpen = list.some(x => x.jobs.some(p => jobNotesOpen(p.id)));
+  allBtn.hidden = !list.some(x => x.jobs.length);
+  allBtn.setAttribute('aria-expanded', String(anyOpen));
+  $('span', allBtn).textContent = anyOpen ? 'Alle Notizen einklappen' : 'Alle Notizen ausklappen';
   layoutMasonry($$(':scope > .tile', grid));
   ensureBoardSortable();
 }
@@ -1049,6 +1068,19 @@ function observeMasonry(el) {
   if (!masonryRO) masonryRO = new ResizeObserver(entries => layoutMasonry(entries.map(e => e.target)));
   masonryRO.observe(el);
 }
+/* Notizen ein-/ausklappen: globaler Standard + Abweichungen je Job (im Browser gemerkt) */
+const jobNotesOpen = pid => S.jobNotes.has(pid) ? S.jobNotes.get(pid) : S.notesOpen;
+function setJobNotes(pid, open) { if (open === S.notesOpen) S.jobNotes.delete(pid); else S.jobNotes.set(pid, open); }
+function toggleAllNotes() {
+  const anyOpen = visibleClients().some(x => x.jobs.some(p => jobNotesOpen(p.id)));
+  S.notesOpen = !anyOpen; S.jobNotes.clear(); savePrefs(); queueRender();
+}
+function toggleClientNotes(cid) {
+  const jobs = (visibleClients().find(x => x.c.id === cid) || { jobs: [] }).jobs;
+  const open = !jobs.some(p => jobNotesOpen(p.id));
+  jobs.forEach(p => setJobNotes(p.id, open)); savePrefs(); queueRender();
+}
+function toggleJobNotes(pid) { setJobNotes(pid, !jobNotesOpen(pid)); savePrefs(); queueRender(); }
 function resetFilters() { S.q = ''; $('#q').value = ''; S.status = 'all'; S.person = 'all'; savePrefs(); queueRender(); }
 function buildTile(cid) {
   const jobsEl = h('div', { class: 'jobs' });
@@ -1057,6 +1089,7 @@ function buildTile(cid) {
       h('span', { class: 'grip write-only' }, svg(ICON.grip)),
       h('div', { class: 'tile-titles' }, h('h3', {})),
       h('div', { class: 'tile-actions no-drag' },
+        h('button', { class: 'icon-btn notes-tg', type: 'button', 'data-act': 'notes-client', 'aria-expanded': 'true' }, svg(ICON.chev)),
         h('button', { class: 'icon-btn write-only', type: 'button', 'data-act': 'edit-client', 'aria-label': 'Kunde bearbeiten', title: 'Kunde bearbeiten' }, svg(ICON.edit)))
     ),
     h('div', { class: 'tile-meta' }),
@@ -1084,6 +1117,7 @@ function buildJob(pid) {
       h('span', { class: 'job-grip write-only', title: 'Job verschieben' }, svg(ICON.grip)),
       h('h4', { class: 'job-title' }),
       h('div', { class: 'job-actions' },
+        h('button', { class: 'icon-btn notes-tg', type: 'button', 'data-act': 'notes-job', 'aria-expanded': 'true' }, svg(ICON.chev), h('span', { class: 'n' })),
         h('button', { class: 'icon-btn write-only', type: 'button', 'data-act': 'plan', 'aria-label': 'Zeit einplanen', title: 'Zeit einplanen' }, svg(ICON.cal)),
         h('button', { class: 'icon-btn write-only', type: 'button', 'data-act': 'edit', 'aria-label': 'Job bearbeiten', title: 'Job bearbeiten' }, svg(ICON.edit)))),
     h('div', { class: 'job-meta' }),
@@ -1140,6 +1174,12 @@ function updateTile(el, c, jobs) {
     if (at !== je) box.insertBefore(je, at || null);
   });
   box.dataset.empty = all.length ? 'filtered' : 'none';
+  const ctg = $('[data-act="notes-client"]', el);
+  const cOpen = jobs.some(p => jobNotesOpen(p.id));
+  ctg.hidden = !jobs.length;
+  ctg.setAttribute('aria-expanded', String(cOpen));
+  ctg.title = cOpen ? 'Alle Notizen dieses Kunden einklappen' : 'Alle Notizen dieses Kunden ausklappen';
+  ctg.setAttribute('aria-label', ctg.title);
   const doneCount = all.length - open.length;
   const dt = $('.done-toggle', el);
   if (S.status === 'all' && !S.showDone && doneCount) {
@@ -1157,6 +1197,15 @@ function updateJob(je, p, c) {
   const mem = (p.members || []).slice(0, 4);
   if (mem.length) parts.push(h('span', { class: 'avatars', title: (p.members || []).map(nameOf).join(', ') }, mem.map(m => avatar(m, 'sm'))));
   meta.replaceChildren(...parts.filter(Boolean));
+
+  const nOpen = jobNotesOpen(p.id);
+  const nCount = notesOf(p.id).length;
+  je.classList.toggle('notes-collapsed', !nOpen);
+  const ntg = $('.notes-tg', je);
+  ntg.setAttribute('aria-expanded', String(nOpen));
+  const nLabel = (nOpen ? 'Notizen einklappen' : 'Notizen ausklappen') + (nCount ? ` (${nCount})` : '');
+  ntg.title = nLabel; ntg.setAttribute('aria-label', nLabel);
+  $('.n', ntg).textContent = !nOpen && nCount ? String(nCount) : '';
 
   const ul = $('.notes', je);
   if (ul.contains(document.activeElement)) { je.dataset.stale = '1'; return; }
@@ -1871,6 +1920,7 @@ function bindStatic() {
   $('#month-today').addEventListener('click', () => { const n = new Date(); S.month = new Date(n.getFullYear(), n.getMonth(), 1); queueRender(); });
   for (const sel of $$('.person-filter')) sel.addEventListener('change', e => { S.person = e.target.value; savePrefs(); e.target.blur(); queueRender(); });
   $('#new-project').addEventListener('click', () => openClientDialog());
+  $('#notes-all').addEventListener('click', toggleAllNotes);
   $('#weekgrid').addEventListener('pointerdown', weekPointerDown);
   $('#palette').addEventListener('pointerdown', weekPointerDown);
   $('#week-prev').addEventListener('click', () => { S.weekStart = addDays(S.weekStart, -7); queueRender(); });
@@ -1932,6 +1982,8 @@ function bindStatic() {
         return;
       }
       if (a === 'to-week') { S.weekStart = monday(new Date()); setView('week'); return; }
+      if (a === 'notes-job' && job) { toggleJobNotes(job.dataset.job); return; }
+      if (a === 'notes-client' && tile) { toggleClientNotes(tile.dataset.id); return; }
       if (a === 'more' && job) { const id = job.dataset.job; if (S.expanded.has(id)) S.expanded.delete(id); else S.expanded.add(id); queueRender(); return; }
       if ((a === 'h+' || a === 'h-')) { const sl = act.closest('[data-slot]'); if (sl) bumpHours(sl.dataset.slot, a === 'h+' ? 0.5 : -0.5); return; }
     }
