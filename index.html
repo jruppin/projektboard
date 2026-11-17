@@ -199,6 +199,8 @@ button.pill:hover{border-color:var(--accent)}
 .pal-client:first-child{margin-top:0}
 .slot-client{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);overflow-wrap:anywhere;line-height:1.3}
 .note{display:grid;grid-template-columns:22px 1fr auto;gap:6px;align-items:start;padding:6px 4px;border-bottom:1px dashed var(--line)}
+.note.no-chk{grid-template-columns:8px 1fr auto}
+.note.no-chk::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--muted);margin-top:8px}
 .note:last-child{border-bottom:0}
 .chk{width:18px;height:18px;margin-top:2px;border:1.5px solid var(--muted);border-radius:5px;background:transparent;padding:0;display:grid;place-items:center}
 .chk[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
@@ -389,7 +391,7 @@ button.pill:hover{border-color:var(--accent)}
 <header class="top">
   <div class="brand"><h1>Projektboard</h1><span>Concept Art Hannover</span></div>
   <nav class="tabs" role="tablist" aria-label="Ansicht">
-    <button class="tab" role="tab" data-view="board" id="tab-board">Kacheln</button>
+    <button class="tab" role="tab" data-view="board" id="tab-board">Kunden</button>
     <button class="tab" role="tab" data-view="month" id="tab-month">Monat</button>
     <button class="tab" role="tab" data-view="week" id="tab-week">Woche</button>
     <button class="tab" role="tab" data-view="day" id="tab-day">Tag</button>
@@ -1012,9 +1014,9 @@ function buildJob(pid) {
     h('form', { class: 'note-add write-only', 'data-project': pid }, input,
       h('button', { class: 'icon-btn', type: 'submit', 'aria-label': 'Notiz speichern' }, svg(ICON.plus))));
 }
-function noteItem(n) {
-  return h('li', { class: 'note' + (n.done ? ' done' : ''), 'data-note': n.id },
-    h('button', { class: 'chk', type: 'button', 'data-act': 'toggle', 'aria-pressed': String(!!n.done), 'aria-label': n.done ? 'Als offen markieren' : 'Als erledigt markieren', disabled: !S.canWrite }, n.done ? svg(ICON.check, '') : null),
+function noteItem(n, withCheck = true) {
+  return h('li', { class: 'note' + (n.done ? ' done' : '') + (withCheck ? '' : ' no-chk'), 'data-note': n.id },
+    withCheck ? h('button', { class: 'chk', type: 'button', 'data-act': 'toggle', 'aria-pressed': String(!!n.done), 'aria-label': n.done ? 'Als offen markieren' : 'Als erledigt markieren', disabled: !S.canWrite }, n.done ? svg(ICON.check, '') : null) : null,
     h('div', {}, h('span', { class: 'txt', 'data-act': 'edit-note', title: S.canWrite ? 'Zum Bearbeiten klicken' : null, text: n.text }),
       h('span', { class: 'by', text: [n.author ? nameOf(n.author) : null, rel(n.createdAt)].filter(Boolean).join(' · ') })),
     h('button', { class: 'icon-btn del write-only', type: 'button', 'data-act': 'del-note', 'aria-label': 'Notiz löschen' }, svg(ICON.x))
@@ -1083,7 +1085,7 @@ function updateJob(je, p, c) {
   delete je.dataset.stale;
   const all = sortNotes(notesOf(p.id));
   const limit = S.expanded.has(p.id) ? Infinity : (S.density === 's' ? 2 : c.size === 'l' ? 6 : 4);
-  ul.replaceChildren(...all.slice(0, limit).map(noteItem));
+  ul.replaceChildren(...all.slice(0, limit).map(n => noteItem(n, false)));
   const more = $('.more', je);
   const rest = all.length - Math.min(limit, all.length);
   if (rest > 0) { more.hidden = false; more.textContent = `${rest} weitere Notiz${rest === 1 ? '' : 'en'} zeigen`; }
@@ -1541,7 +1543,7 @@ function editNote(span) {
 /* ---------- Ereignisse ---------- */
 function setView(v, push = true) {
   S.view = v;
-  if (push) { const tag = { board: 'kacheln', month: 'monat', week: 'woche', day: 'tag' }[v]; try { if (location.hash !== '#' + tag) history.replaceState(null, '', '#' + tag); } catch (e) { location.hash = tag; } }
+  if (push) { const tag = { board: 'kunden', month: 'monat', week: 'woche', day: 'tag' }[v]; try { if (location.hash !== '#' + tag) history.replaceState(null, '', '#' + tag); } catch (e) { location.hash = tag; } }
   queueRender();
 }
 function applyHash() {
