@@ -710,7 +710,7 @@ function renderSummary() {
     stat(act.filter(p => p.status === 'wartet').length, 'warten auf Kunde'),
     stat(openNotes, 'offene Notizen'),
     stat(fmtH(wk), S.person === 'all' ? 'diese Woche geplant' : `diese Woche für ${nameOf(S.person)}`),
-    overdue ? h('span', { class: 'stat', style: 'color:var(--bad)' }, h('b', { text: overdue, style: 'color:var(--bad)' }), 'überfällig') : null
+    overdue ? h('span', { class: 'stat', style: 'color:var(--bad)' }, h('b', { text: overdue, style: 'color:var(--bad)' }), 'überfällig') : ''
   );
   const counts = { all: [...S.projects.values()].filter(p => S.showDone || p.status !== 'erledigt').length };
   for (const s of STATUS) counts[s.id] = [...S.projects.values()].filter(p => p.status === s.id).length;
