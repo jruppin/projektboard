@@ -1240,9 +1240,9 @@ function buildPrintView() {
   const root = $('#print-view');
   const tag = (txt, cls) => h('span', { class: 'pv-tag' + (cls ? ' ' + cls : ''), text: txt });
   // Teil 1: Kunden, Jobs, Notizen
-  const clients = clientsSorted().map(c => {
+  const clients = clientsSorted().slice().sort((a, b) => abc(a.name, b.name)).map(c => {
     const all = jobsOf(c.id);
-    const open = all.filter(p => p.status !== 'erledigt');
+    const open = all.filter(p => p.status !== 'erledigt').sort((a, b) => abc(a.title, b.title));
     const done = all.length - open.length;
     const col = c.color || COLORS[0];
     return h('section', { class: 'pv-client', '--c': col },
