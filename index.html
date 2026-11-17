@@ -235,6 +235,33 @@ button.pill:hover{border-color:var(--accent)}
 .pchip span{white-space:normal;overflow-wrap:anywhere;line-height:1.3;min-width:0}
 .weekgrid-wrap{overflow-x:auto}
 .weekgrid{display:grid;gap:10px;min-width:min-content}
+/* Woche als Stundenraster */
+.wk{display:grid;column-gap:6px;row-gap:6px;min-width:min-content;align-items:stretch}
+.wk-head{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.wk-head.today{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.wk-head.weekend{background:var(--surface-2)}
+.wk-corner,.wk-rowlabel{font-size:11px;color:var(--muted);font-family:var(--font-mono);text-align:right;padding:10px 6px 0 0}
+.wk-untimed{background:var(--surface);border:1px dashed var(--line);border-radius:8px;padding:5px;display:flex;flex-direction:column;gap:5px;min-height:46px}
+.wk-untimed.weekend{background:var(--surface-2)}
+.wk-untimed.drop{border-color:var(--accent);border-style:solid;background:var(--accent-soft)}
+.wk-untimed .add-slot{margin:auto 0 0;padding:4px;font-size:12px}
+.wk-untimed .slot{font-size:12.5px;padding:6px 8px}
+.wk-hours div{height:var(--ph);font-family:var(--font-mono);font-size:11px;color:var(--muted);text-align:right;padding-right:6px;transform:translateY(-7px)}
+.wk-hours div:first-child{transform:none}
+.wk-col{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:8px;cursor:copy;overflow:hidden}
+.readonly .wk-col{cursor:default}
+.wk-col.weekend{background:var(--surface-2)}
+.wk-col.today{border-color:var(--accent)}
+.wk-col .hr{height:var(--ph);border-top:1px solid var(--line)}
+.wk-col .hr:first-child{border-top:0}
+.wk-col .hr::after{content:"";display:block;height:50%;border-bottom:1px dotted color-mix(in srgb,var(--line) 70%,transparent)}
+.wk-col .block{font-size:11.5px;padding:3px 6px 9px;gap:1px}
+.wk-col .block .slot-title{font-size:12px}
+.wk-col .block .slot-client{font-size:9.5px}
+.wk-preview{pointer-events:none;opacity:.9;z-index:4;left:3px !important;width:calc(100% - 6px);outline:2px dashed rgba(255,255,255,.95);outline-offset:-4px}
+.drag-src{opacity:.35}
+body.wk-dragging,body.wk-dragging *{cursor:grabbing !important;user-select:none}
+#palette .pchip{cursor:grab}
 .day{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);display:flex;flex-direction:column;min-height:320px;min-width:150px}
 .day.today{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 .day.weekend{background:var(--surface-2)}
@@ -464,7 +491,7 @@ button.pill:hover{border-color:var(--accent)}
     <div class="week-layout">
       <aside class="palette write-only" aria-label="Jobs zum Einplanen">
         <h4>Jobs</h4>
-        <p class="hint">Job auf einen Tag ziehen, um Zeit einzuplanen. Planungen lassen sich zwischen Tagen verschieben.</p>
+        <p class="hint">Job an die gewünschte Uhrzeit ziehen oder in „ohne Zeit“. Blöcke lassen sich verschieben, an der Unterkante änderst du die Dauer.</p>
         <div class="palette-list" id="palette"></div>
       </aside>
       <div class="weekgrid-wrap"><div class="weekgrid" id="weekgrid"></div></div>
@@ -1228,44 +1255,142 @@ function renderWeek() {
   const start = S.weekStart, n = S.weekend ? 7 : 5;
   $('#weekend').checked = S.weekend;
   $('#week-label').replaceChildren(`KW ${isoWeek(start)} `, h('span', { style: 'color:var(--muted);font-weight:400;font-family:var(--font-body);font-size:14px', text: `${fmtD(start)} – ${fmtD(addDays(start, n - 1))}${addDays(start, n - 1).getFullYear()}` }));
+  buildPalette($('#palette'));
 
-  const pal = $('#palette');
-  buildPalette(pal);
-
-  const grid = $('#weekgrid');
-  grid.style.gridTemplateColumns = `repeat(${n}, minmax(150px, 1fr))`;
+  const days = Array.from({ length: n }, (_, i) => addDays(start, i));
+  const keys = days.map(ymd);
+  const perDay = keys.map(k => slotsOn(k));
+  let H0 = 7, H1 = 19;
+  for (const s of perDay.flat()) { const m = toMin(s.start); if (m != null) { H0 = Math.min(H0, Math.floor(m / 60)); H1 = Math.max(H1, Math.ceil((m + (Number(s.hours) || 0) * 60) / 60)); } }
+  H1 = Math.min(H1, 24);
+  const PX = 48;
   const tday = ymd(today());
   const capPeople = S.person === 'all' ? Math.max(1, new Set([...S.slots.values()].filter(s => s.date >= ymd(start) && s.date <= ymd(addDays(start, 6))).map(s => s.userId)).size) : 1;
-  const days = [];
-  for (let i = 0; i < n; i++) {
-    const d = addDays(start, i), key = ymd(d);
-    const list = slotsOn(key);
+
+  const grid = $('#weekgrid');
+  grid.className = 'wk';
+  grid.style.gridTemplateColumns = `52px repeat(${n}, minmax(130px, 1fr))`;
+  grid.style.setProperty('--ph', PX + 'px');
+  const cells = [h('div', { class: 'wk-corner' })];
+  days.forEach((d, i) => {
+    const key = keys[i], list = perDay[i];
     const sum = list.reduce((a, s) => a + (Number(s.hours) || 0), 0);
     const cap = DAY_CAP * capPeople;
-    const slotsEl = h('div', { class: 'slots', 'data-date': key }, list.map(s => slotCard(s)));
-    days.push(h('div', { class: `day${key === tday ? ' today' : ''}${i > 4 ? ' weekend' : ''}` },
-      h('div', { class: 'day-head' },
-        h('div', { class: 'row' },
-          h('button', { class: 'day-link', type: 'button', 'data-goto-day': key, title: 'Tagesansicht öffnen' }, h('h4', {}, `${DAYS[i]} `, h('span', { class: 'date', text: fmtD(d) }))),
-          h('span', { class: 'sum', text: sum ? `${fmtH(sum)} / ${cap} h` : '–' })),
-        h('div', { class: `load${sum > cap ? ' over' : ''}`, title: `${fmtH(sum)} von ${cap} h` }, h('i', { style: `width:${Math.min(100, sum / cap * 100)}%` }))),
-      slotsEl,
-      h('button', { class: 'add-slot write-only', type: 'button', 'data-add-date': key }, '+ Einplanen')
-    ));
-  }
-  grid.replaceChildren(...days);
-
-  if (!window.Sortable || !S.canWrite) return;
-  S.sortables.push(Sortable.create(pal, {
-    group: { name: 'plan', pull: 'clone', put: false }, sort: false, animation: 150, draggable: '.pchip', delayOnTouchOnly: true, delay: 150,
-    onStart() { S.dragging = true; }, onEnd: endDrag
-  }));
-  for (const el of $$('.slots', grid)) {
-    S.sortables.push(Sortable.create(el, {
-      group: { name: 'plan', pull: true, put: true }, sort: false, animation: 150, draggable: '.slot, .pchip', filter: '.no-drag', preventOnFilter: false, delayOnTouchOnly: true, delay: 150,
-      onStart() { S.dragging = true; }, onEnd: endDrag, onAdd: onDayAdd
-    }));
-  }
+    cells.push(h('div', { class: `wk-head day-head${key === tday ? ' today' : ''}${i > 4 ? ' weekend' : ''}` },
+      h('div', { class: 'row' },
+        h('button', { class: 'day-link', type: 'button', 'data-goto-day': key, title: 'Tagesansicht öffnen' }, h('h4', {}, `${DAYS[i]} `, h('span', { class: 'date', text: fmtD(d) }))),
+        h('span', { class: 'sum', text: sum ? `${fmtH(sum)} / ${cap} h` : '–' })),
+      h('div', { class: `load${sum > cap ? ' over' : ''}`, title: `${fmtH(sum)} von ${cap} h` }, h('i', { style: `width:${Math.min(100, sum / cap * 100)}%` }))));
+  });
+  cells.push(h('div', { class: 'wk-rowlabel', text: 'ohne Zeit' }));
+  days.forEach((d, i) => {
+    cells.push(h('div', { class: `wk-untimed${i > 4 ? ' weekend' : ''}`, 'data-date': keys[i] },
+      perDay[i].filter(s => toMin(s.start) == null).map(s => slotCard(s)),
+      h('button', { class: 'add-slot write-only', type: 'button', 'data-add-date': keys[i] }, '+ Einplanen')));
+  });
+  const hoursCol = h('div', { class: 'wk-hours' });
+  for (let hr = H0; hr < H1; hr++) hoursCol.append(h('div', { text: `${pad(hr)}:00` }));
+  cells.push(hoursCol);
+  days.forEach((d, i) => {
+    const key = keys[i];
+    const col = h('div', { class: `wk-col${key === tday ? ' today' : ''}${i > 4 ? ' weekend' : ''}`, 'data-date': key, 'data-h0': H0, 'data-h1': H1, 'data-px': PX, style: `height:${(H1 - H0) * PX}px`, title: S.canWrite ? 'Klicken, um hier Zeit einzuplanen' : null });
+    for (let hr = H0; hr < H1; hr++) col.append(h('div', { class: 'hr' }));
+    const items = perDay[i].filter(s => toMin(s.start) != null).map(s => ({ s, a: toMin(s.start), b: toMin(s.start) + Math.max(15, (Number(s.hours) || 0) * 60) })).sort((x, y) => x.a - y.a);
+    const laneEnds = [];
+    for (const it of items) { let l = laneEnds.findIndex(e => e <= it.a); if (l < 0) { l = laneEnds.length; laneEnds.push(0); } laneEnds[l] = it.b; it.lane = l; }
+    const lanes = Math.max(1, laneEnds.length);
+    for (const it of items) {
+      const p = proj(it.s.projectId), col2 = jobColor(p);
+      const top = (it.a - H0 * 60) / 60 * PX, height = Math.max(24, (it.b - it.a) / 60 * PX - 3);
+      col.append(h('div', { class: 'block' + (darkTextOn(col2) ? ' on-light' : ''), 'data-slot': it.s.id, '--c': col2, tabindex: '0', role: 'button', 'aria-label': `${clientName(p)}: ${p.title} ab ${it.s.start}, ${fmtH(it.s.hours)} – bearbeiten`,
+        style: `top:${top + 1}px;height:${height}px;left:calc(${it.lane / lanes * 100}% + 3px);width:calc(${100 / lanes}% - 6px)` },
+        h('div', { class: 'slot-client', text: clientName(p) }),
+        h('div', { class: 'slot-title', text: p.title }),
+        h('div', { class: 'slot-meta' }, it.s.userId ? avatar(it.s.userId, 'sm') : null, h('span', { class: 'num block-time', text: `${it.s.start}–${fromMin(Math.min(24 * 60, it.b))}` })),
+        S.canWrite ? h('div', { class: 'block-resize', title: 'Ziehen, um die Dauer zu ändern', 'aria-hidden': 'true' }) : null));
+    }
+    if (key === tday) {
+      const now = new Date(); const m = now.getHours() * 60 + now.getMinutes();
+      if (m >= H0 * 60 && m <= H1 * 60) col.append(h('div', { class: 'nowline', style: `top:${(m - H0 * 60) / 60 * PX}px` }));
+    }
+    cells.push(col);
+  });
+  grid.replaceChildren(...cells);
+}
+/* Woche: Ziehen mit der Maus – Jobs aus der Liste, Karten ohne Uhrzeit und Blöcke in das Stundenraster oder in „ohne Zeit“ */
+function weekPointerDown(e) {
+  if (!S.canWrite || e.button !== 0) return;
+  const resize = e.target.closest('.wk .block-resize');
+  if (resize) { onBlockPointerDown(e); return; }
+  if (e.target.closest('button')) return;
+  const src = e.target.closest('#palette .pchip, .wk .slot, .wk .block');
+  if (!src || e.pointerType === 'touch') return;
+  const isNew = src.classList.contains('pchip');
+  const s = isNew ? null : S.slots.get(src.dataset.slot);
+  if (!isNew && !s) return;
+  const pid = isNew ? src.dataset.project : s.projectId;
+  const p = proj(pid); if (!p) return;
+  const dur = isNew ? 120 : Math.max(15, Math.round((Number(s.hours) || 0) * 60));
+  const isBlock = src.classList.contains('block');
+  const startX = e.clientX, startY = e.clientY;
+  const srcTop = src.getBoundingClientRect().top;
+  let moved = false, grabMin = 15, target = null;
+  const col0 = jobColor(p);
+  const preview = h('div', { class: 'block wk-preview' + (darkTextOn(col0) ? ' on-light' : ''), '--c': col0 },
+    h('div', { class: 'slot-client', text: clientName(p) }), h('div', { class: 'slot-title', text: p.title }),
+    h('div', { class: 'slot-meta' }, h('span', { class: 'num block-time' })));
+  e.preventDefault();
+  try { src.setPointerCapture(e.pointerId); } catch (er) {}
+  S.dragging = true;
+  const clearDrop = () => $$('.wk-untimed.drop').forEach(x => x.classList.remove('drop'));
+  const onMove = ev => {
+    if (!moved && Math.hypot(ev.clientX - startX, ev.clientY - startY) < 5) return;
+    if (!moved) {
+      moved = true; src.classList.add('drag-src'); document.body.classList.add('wk-dragging');
+      if (isBlock) grabMin = (startY - srcTop) / Number(src.parentElement.dataset.px) * 60;
+    }
+    const el = document.elementFromPoint(ev.clientX, ev.clientY);
+    const col = el && el.closest('.wk-col'), strip = el && el.closest('.wk-untimed');
+    clearDrop();
+    if (col) {
+      const H0 = +col.dataset.h0, H1 = +col.dataset.h1, PX = +col.dataset.px, r = col.getBoundingClientRect();
+      let m = Math.round((H0 * 60 + (ev.clientY - r.top) / PX * 60 - grabMin) / 15) * 15;
+      m = Math.max(H0 * 60, Math.min(m, H1 * 60 - Math.min(dur, (H1 - H0) * 60)));
+      if (preview.parentElement !== col) col.append(preview);
+      preview.style.top = ((m - H0 * 60) / 60 * PX + 1) + 'px';
+      preview.style.height = Math.max(24, dur / 60 * PX - 3) + 'px';
+      $('.block-time', preview).textContent = `${fromMin(m)}–${fromMin(Math.min(24 * 60, m + dur))}`;
+      target = { date: col.dataset.date, start: fromMin(m) };
+    } else if (strip) {
+      preview.remove(); strip.classList.add('drop');
+      target = { date: strip.dataset.date, start: '' };
+    } else { preview.remove(); target = null; }
+  };
+  const onUp = () => {
+    src.removeEventListener('pointermove', onMove);
+    src.removeEventListener('pointerup', onUp);
+    src.removeEventListener('pointercancel', onUp);
+    try { src.releasePointerCapture(e.pointerId); } catch (er) {}
+    preview.remove(); clearDrop(); src.classList.remove('drag-src'); document.body.classList.remove('wk-dragging');
+    S.dragging = false; S.pending = false;
+    if (!moved) { queueRender(); return; }
+    S.suppressClick = Date.now();
+    if (!target) { queueRender(); return; }
+    const when = `${fmtD(parseYmd(target.date))}${target.start ? ' · ' + target.start : ' · ohne Uhrzeit'}`;
+    if (isNew) {
+      saveSlot(null, { projectId: pid, date: target.date, start: target.start, hours: dur / 60, userId: S.person !== 'all' ? S.person : (S.me || null) })
+        .then(ok => { if (ok) toast(`${p.title}: ${fmtH(dur / 60)} am ${when} eingeplant`); });
+    } else {
+      const patch = {};
+      if (target.date !== s.date) patch.date = target.date;
+      if ((target.start || '') !== (s.start || '')) patch.start = target.start;
+      if (Object.keys(patch).length) saveSlot(s.id, patch).then(ok => { if (ok) toast(`${p.title}: ${when}`); });
+      else queueRender();
+    }
+  };
+  src.addEventListener('pointermove', onMove);
+  src.addEventListener('pointerup', onUp);
+  src.addEventListener('pointercancel', onUp);
 }
 function endDrag() { S.dragging = false; S.pending = false; queueRender(); }
 function onDayAdd(evt) {
@@ -1624,6 +1749,8 @@ function bindStatic() {
   $('#month-today').addEventListener('click', () => { const n = new Date(); S.month = new Date(n.getFullYear(), n.getMonth(), 1); queueRender(); });
   for (const sel of $$('.person-filter')) sel.addEventListener('change', e => { S.person = e.target.value; savePrefs(); e.target.blur(); queueRender(); });
   $('#new-project').addEventListener('click', () => openClientDialog());
+  $('#weekgrid').addEventListener('pointerdown', weekPointerDown);
+  $('#palette').addEventListener('pointerdown', weekPointerDown);
   $('#week-prev').addEventListener('click', () => { S.weekStart = addDays(S.weekStart, -7); queueRender(); });
   $('#week-next').addEventListener('click', () => { S.weekStart = addDays(S.weekStart, 7); queueRender(); });
   $('#week-today').addEventListener('click', () => { S.weekStart = monday(new Date()); queueRender(); });
@@ -1694,10 +1821,10 @@ function bindStatic() {
     if (gd) { S.day = parseYmd(gd.dataset.gotoDay); setView('day'); return; }
     const sl = t.closest('[data-slot]');
     if (sl) { if (S.canWrite) openSlotDialog({ id: sl.dataset.slot }); return; }
-    const area = t.closest('.lane-area');
+    const area = t.closest('.lane-area, .wk-col');
     if (area && S.canWrite && (t === area || (t.classList && t.classList.contains('hr')))) {
       const rect = area.getBoundingClientRect();
-      const PX = 56; const firstHr = parseInt($('#timeline .hours-col div').textContent, 10) || 7;
+      const PX = Number(area.dataset.px) || 56; const firstHr = Number(area.dataset.h0) || 7;
       const m = Math.max(0, Math.round(((e.clientY - rect.top) / PX * 60 + firstHr * 60) / 30) * 30);
       openSlotDialog({ date: area.dataset.date, start: fromMin(Math.min(m, 23 * 60 + 30)) });
     }
