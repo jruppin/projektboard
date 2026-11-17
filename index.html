@@ -229,7 +229,8 @@ button.pill:hover{border-color:var(--accent)}
 .palette-list{display:grid;gap:6px}
 .pchip{display:flex;align-items:center;gap:8px;padding:7px 10px;border:0;border-radius:8px;background:var(--c);color:#fff;font-size:13.5px;font-weight:500;cursor:grab;user-select:none}
 .readonly .pchip{cursor:default}
-.pchip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pchip{align-items:flex-start}
+.pchip span{white-space:normal;overflow-wrap:anywhere;line-height:1.3;min-width:0}
 .weekgrid-wrap{overflow-x:auto}
 .weekgrid{display:grid;gap:10px;min-width:min-content}
 .day{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);display:flex;flex-direction:column;min-height:320px;min-width:150px}
@@ -270,6 +271,36 @@ button.pill:hover{border-color:var(--accent)}
 .on-light .slot-meta .num{color:#13201d}
 .on-light .slot-hrs button{background:rgba(0,0,0,.1);color:#13201d}
 .on-light .slot-hrs button:hover{background:rgba(0,0,0,.18)}
+
+/* Monat */
+.month-wrap{overflow-x:auto}
+.month{display:grid;gap:6px;min-width:min-content;align-items:stretch}
+.m-dow{font-size:12.5px;font-weight:600;color:var(--muted);padding:0 6px;align-self:end}
+.m-kw{border:0;background:none;color:var(--muted);font-size:11px;font-family:var(--font-mono);text-align:left;padding:8px 0 0;align-self:start}
+.m-kw:hover{color:var(--accent);text-decoration:underline}
+.m-day{background:var(--surface);border:1px solid var(--line);border-radius:8px;min-height:108px;display:flex;flex-direction:column;min-width:0}
+.m-day.out{opacity:.5}
+.m-day.weekend{background:var(--surface-2)}
+.m-day.today{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.m-head{display:flex;align-items:center;gap:4px;padding:4px 5px 2px}
+.m-date{border:0;background:none;font-family:var(--font-display);font-weight:700;font-size:14px;min-width:26px;height:26px;padding:0 5px;border-radius:7px;color:var(--ink)}
+.m-date:hover{background:var(--surface-2);color:var(--accent)}
+.m-day.today .m-date{background:var(--accent);color:var(--accent-ink)}
+.m-sum{font-size:11.5px;color:var(--muted);margin-left:auto}
+.m-add{margin-left:auto;border:0;background:none;color:var(--muted);width:24px;height:24px;border-radius:6px;font-size:16px;line-height:1;padding:0;opacity:0}
+.m-sum + .m-add{margin-left:2px}
+.m-day:hover .m-add,.m-add:focus-visible{opacity:1}
+.m-add:hover{background:var(--surface-2);color:var(--accent)}
+.m-slots{display:flex;flex-direction:column;gap:3px;padding:2px 5px 6px;flex:1;min-height:34px}
+.mslot{display:grid;grid-template-columns:1fr;background:var(--c);color:#fff;border-radius:6px;padding:4px 7px;font-size:12px;line-height:1.25;cursor:grab;box-shadow:var(--shadow)}
+.readonly .mslot{cursor:pointer}
+.mslot .ms-client{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;opacity:.85;overflow-wrap:anywhere}
+.mslot .ms-title{font-weight:600;overflow-wrap:anywhere}
+.mslot .ms-h{font-size:11px;opacity:.9}
+.mslot.on-light{color:#13201d}
+.mslot:focus-visible{outline-color:var(--ink)}
+.m-slots .pchip{font-size:12px;padding:4px 7px;opacity:.85}
+@media (hover:none){.m-add{opacity:1}}
 
 /* Tag */
 .day-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start}
@@ -359,6 +390,7 @@ button.pill:hover{border-color:var(--accent)}
   <div class="brand"><h1>Projektboard</h1><span>Concept Art Hannover</span></div>
   <nav class="tabs" role="tablist" aria-label="Ansicht">
     <button class="tab" role="tab" data-view="board" id="tab-board">Kacheln</button>
+    <button class="tab" role="tab" data-view="month" id="tab-month">Monat</button>
     <button class="tab" role="tab" data-view="week" id="tab-week">Woche</button>
     <button class="tab" role="tab" data-view="day" id="tab-day">Tag</button>
   </nav>
@@ -386,6 +418,27 @@ button.pill:hover{border-color:var(--accent)}
     <div class="summary" id="summary"></div>
     <div class="grid" id="grid" data-density="m"></div>
     <div class="empty" id="board-empty" hidden></div>
+  </section>
+
+  <!-- MONAT -->
+  <section class="view" id="view-month" aria-labelledby="tab-month" hidden>
+    <div class="toolbar">
+      <button class="icon-btn" id="month-prev" type="button" aria-label="Vorheriger Monat"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5"/></svg></button>
+      <h2 id="month-label" style="font-size:18px"></h2>
+      <button class="icon-btn" id="month-next" type="button" aria-label="Nächster Monat"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg></button>
+      <button class="btn" id="month-today" type="button">Dieser Monat</button>
+      <span class="grow"></span>
+      <label class="field" for="person-month">Person <select id="person-month" class="person-filter"></select></label>
+      <label class="check" for="weekend-m"><input type="checkbox" id="weekend-m"> Wochenende</label>
+    </div>
+    <div class="week-layout">
+      <aside class="palette write-only" aria-label="Jobs zum Einplanen">
+        <h4>Jobs</h4>
+        <p class="hint">Job auf einen Tag ziehen, um Zeit einzuplanen. Planungen lassen sich zwischen Tagen verschieben.</p>
+        <div class="palette-list" id="palette-month"></div>
+      </aside>
+      <div class="month-wrap"><div class="month" id="monthgrid"></div></div>
+    </div>
   </section>
 
   <!-- WOCHE -->
@@ -540,7 +593,7 @@ const S = {
   canWrite: true, writeKnown: false,
   projects: new Map(), clients: new Map(), notes: new Map(), slots: new Map(), team: new Set(),
   loaded: { projects: false, clients: false, notes: false, slots: false }, confirmed: null, openDone: new Set(),
-  view: 'board', weekStart: monday(new Date()), day: today(),
+  view: 'board', weekStart: monday(new Date()), day: today(), month: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   person: prefs.person || 'all', q: '', status: 'all',
   showDone: !!prefs.showDone, density: prefs.density || 'm', weekend: !!prefs.weekend,
   expanded: new Set(), dragging: false, pending: false, sortables: [], boardSortable: null
@@ -809,6 +862,7 @@ async function render() {
   renderPersonFilters();
   if (S.view === 'board') renderBoard();
   else if (S.view === 'week') renderWeek();
+  else if (S.view === 'month') renderMonth();
   else renderDay();
 }
 function renderMe() {
@@ -1097,6 +1151,69 @@ function slotCard(s, withHours = true) {
     s.note ? h('div', { class: 'slot-note', text: s.note }) : null
   );
 }
+function buildPalette(pal) {
+  const groups = clientsSorted().map(c => ({ c, jobs: jobsOf(c.id).filter(p => p.status !== 'erledigt') })).filter(g => g.jobs.length);
+  pal.replaceChildren(...(groups.length ? groups.flatMap(g => [
+    h('div', { class: 'pal-client', '--c': g.c.color || COLORS[0], text: g.c.name }),
+    ...g.jobs.map(p => h('div', { class: 'pchip' + (darkTextOn(jobColor(p)) ? ' on-light' : ''), 'data-project': p.id, '--c': jobColor(p), title: `${g.c.name}: ${p.title}` }, h('span', { text: p.title })))
+  ]) : [h('p', { class: 'hint', text: 'Noch keine offenen Jobs.' })]));
+}
+
+/* Monat */
+function monthChip(s) {
+  const p = proj(s.projectId); const col = jobColor(p);
+  const info = [s.start || null, fmtH(s.hours), s.userId ? nameOf(s.userId) : null, s.note || null].filter(Boolean).join(' · ');
+  return h('div', { class: 'mslot' + (darkTextOn(col) ? ' on-light' : ''), 'data-slot': s.id, '--c': col, tabindex: '0', role: 'button', title: `${clientName(p)}: ${p.title} – ${info}`, 'aria-label': `${clientName(p)}: ${p.title}, ${info} – bearbeiten` },
+    h('span', { class: 'ms-client', text: clientName(p) }),
+    h('span', { class: 'ms-title', text: p.title }),
+    h('span', { class: 'ms-h num', text: s.start ? `${s.start} · ${fmtH(s.hours)}` : fmtH(s.hours) }));
+}
+function renderMonth() {
+  destroySortables();
+  const m0 = S.month;
+  $('#weekend-m').checked = S.weekend;
+  const label = m0.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+  const last = new Date(m0.getFullYear(), m0.getMonth() + 1, 0);
+  let monthSum = 0;
+  for (const s of S.slots.values()) if (s.date >= ymd(m0) && s.date <= ymd(last) && proj(s.projectId) && (S.person === 'all' || s.userId === S.person)) monthSum += Number(s.hours) || 0;
+  $('#month-label').replaceChildren(label + ' ', h('span', { style: 'color:var(--muted);font-weight:400;font-family:var(--font-body);font-size:14px', text: monthSum ? `· ${fmtH(monthSum)} geplant` : '' }));
+  buildPalette($('#palette-month'));
+
+  const nCols = S.weekend ? 7 : 5;
+  const grid = $('#monthgrid');
+  grid.style.gridTemplateColumns = `46px repeat(${nCols}, minmax(118px, 1fr))`;
+  const cells = [h('div', { class: 'm-corner' }), ...DAYS.slice(0, nCols).map(d => h('div', { class: 'm-dow', text: d }))];
+  const tday = ymd(today());
+  for (let w = monday(m0); w <= last; w = addDays(w, 7)) {
+    cells.push(h('button', { class: 'm-kw', type: 'button', 'data-goto-week': ymd(w), title: 'Wochenansicht öffnen' }, `KW ${isoWeek(w)}`));
+    for (let i = 0; i < nCols; i++) {
+      const d = addDays(w, i), key = ymd(d);
+      const list = slotsOn(key);
+      const sum = list.reduce((a, s) => a + (Number(s.hours) || 0), 0);
+      const out = d.getMonth() !== m0.getMonth();
+      cells.push(h('div', { class: `m-day${out ? ' out' : ''}${key === tday ? ' today' : ''}${i > 4 ? ' weekend' : ''}` },
+        h('div', { class: 'm-head' },
+          h('button', { class: 'm-date', type: 'button', 'data-goto-day': key, title: 'Tagesansicht öffnen', 'aria-label': `${DAYS_LONG[i]}, ${fmtD(d)} – Tagesansicht öffnen` }, String(d.getDate())),
+          sum ? h('span', { class: 'm-sum num', text: fmtH(sum) }) : null,
+          h('button', { class: 'm-add write-only', type: 'button', 'data-add-date': key, 'aria-label': `Am ${fmtD(d)} Zeit einplanen`, title: 'Zeit einplanen' }, '+')),
+        h('div', { class: 'm-slots', 'data-date': key }, list.map(monthChip))));
+    }
+  }
+  grid.replaceChildren(...cells);
+
+  if (!window.Sortable || !S.canWrite) return;
+  S.sortables.push(Sortable.create($('#palette-month'), {
+    group: { name: 'plan', pull: 'clone', put: false }, sort: false, animation: 150, draggable: '.pchip', delayOnTouchOnly: true, delay: 150,
+    onStart() { S.dragging = true; }, onEnd: endDrag
+  }));
+  for (const el of $$('.m-slots', grid)) {
+    S.sortables.push(Sortable.create(el, {
+      group: { name: 'plan', pull: true, put: true }, sort: false, animation: 150, draggable: '.mslot, .pchip', delayOnTouchOnly: true, delay: 150,
+      onStart() { S.dragging = true; }, onEnd: endDrag, onAdd: onDayAdd
+    }));
+  }
+}
+
 function renderWeek() {
   destroySortables();
   const start = S.weekStart, n = S.weekend ? 7 : 5;
@@ -1104,11 +1221,7 @@ function renderWeek() {
   $('#week-label').replaceChildren(`KW ${isoWeek(start)} `, h('span', { style: 'color:var(--muted);font-weight:400;font-family:var(--font-body);font-size:14px', text: `${fmtD(start)} – ${fmtD(addDays(start, n - 1))}${addDays(start, n - 1).getFullYear()}` }));
 
   const pal = $('#palette');
-  const groups = clientsSorted().map(c => ({ c, jobs: jobsOf(c.id).filter(p => p.status !== 'erledigt') })).filter(g => g.jobs.length);
-  pal.replaceChildren(...(groups.length ? groups.flatMap(g => [
-    h('div', { class: 'pal-client', '--c': g.c.color || COLORS[0], text: g.c.name }),
-    ...g.jobs.map(p => h('div', { class: 'pchip' + (darkTextOn(jobColor(p)) ? ' on-light' : ''), 'data-project': p.id, '--c': jobColor(p), title: `${g.c.name}: ${p.title}` }, h('span', { text: p.title })))
-  ]) : [h('p', { class: 'hint', text: 'Noch keine offenen Jobs.' })]));
+  buildPalette(pal);
 
   const grid = $('#weekgrid');
   grid.style.gridTemplateColumns = `repeat(${n}, minmax(150px, 1fr))`;
@@ -1428,12 +1541,12 @@ function editNote(span) {
 /* ---------- Ereignisse ---------- */
 function setView(v, push = true) {
   S.view = v;
-  if (push) { const tag = { board: 'kacheln', week: 'woche', day: 'tag' }[v]; try { if (location.hash !== '#' + tag) history.replaceState(null, '', '#' + tag); } catch (e) { location.hash = tag; } }
+  if (push) { const tag = { board: 'kacheln', month: 'monat', week: 'woche', day: 'tag' }[v]; try { if (location.hash !== '#' + tag) history.replaceState(null, '', '#' + tag); } catch (e) { location.hash = tag; } }
   queueRender();
 }
 function applyHash() {
   const t = (location.hash || '').slice(1);
-  S.view = t === 'woche' ? 'week' : t === 'tag' ? 'day' : 'board';
+  S.view = t === 'monat' ? 'month' : t === 'woche' ? 'week' : t === 'tag' ? 'day' : 'board';
 }
 function bindStatic() {
   for (const t of $$('.tab')) t.addEventListener('click', () => setView(t.dataset.view));
@@ -1443,6 +1556,10 @@ function bindStatic() {
   $('#density').addEventListener('click', e => { const b = e.target.closest('button[data-d]'); if (!b) return; S.density = b.dataset.d; savePrefs(); queueRender(); });
   $('#show-done').addEventListener('change', e => { S.showDone = e.target.checked; savePrefs(); queueRender(); });
   $('#weekend').addEventListener('change', e => { S.weekend = e.target.checked; savePrefs(); queueRender(); });
+  $('#weekend-m').addEventListener('change', e => { S.weekend = e.target.checked; savePrefs(); queueRender(); });
+  $('#month-prev').addEventListener('click', () => { S.month = new Date(S.month.getFullYear(), S.month.getMonth() - 1, 1); queueRender(); });
+  $('#month-next').addEventListener('click', () => { S.month = new Date(S.month.getFullYear(), S.month.getMonth() + 1, 1); queueRender(); });
+  $('#month-today').addEventListener('click', () => { const n = new Date(); S.month = new Date(n.getFullYear(), n.getMonth(), 1); queueRender(); });
   for (const sel of $$('.person-filter')) sel.addEventListener('change', e => { S.person = e.target.value; savePrefs(); e.target.blur(); queueRender(); });
   $('#new-project').addEventListener('click', () => openClientDialog());
   $('#week-prev').addEventListener('click', () => { S.weekStart = addDays(S.weekStart, -7); queueRender(); });
@@ -1508,6 +1625,8 @@ function bindStatic() {
     }
     const addD = t.closest('[data-add-date]');
     if (addD) { openSlotDialog({ date: addD.dataset.addDate }); return; }
+    const gw = t.closest('[data-goto-week]');
+    if (gw) { S.weekStart = parseYmd(gw.dataset.gotoWeek); setView('week'); return; }
     const gd = t.closest('[data-goto-day]');
     if (gd) { S.day = parseYmd(gd.dataset.gotoDay); setView('day'); return; }
     const sl = t.closest('[data-slot]');
@@ -1521,7 +1640,7 @@ function bindStatic() {
     }
   });
   document.addEventListener('keydown', e => {
-    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('.slot[data-slot], .block[data-slot]')) { e.preventDefault(); if (S.canWrite) openSlotDialog({ id: e.target.dataset.slot }); }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('.slot[data-slot], .block[data-slot], .mslot[data-slot]')) { e.preventDefault(); if (S.canWrite) openSlotDialog({ id: e.target.dataset.slot }); }
   });
 }
 
