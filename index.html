@@ -104,7 +104,8 @@ textarea{width:100%;resize:vertical;min-height:70px}
 .stat b{font-family:var(--font-mono);font-weight:500;font-size:14px;color:var(--ink)}
 
 /* Kacheln */
-.grid{--tile-min:290px;display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--tile-min),1fr));gap:14px;align-items:start}
+/* Mauerwerk-Layout: feine 4-px-Zeilen, jede Kachel belegt so viele Zeilen wie sie hoch ist */
+.grid{--tile-min:290px;display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--tile-min),1fr));grid-auto-rows:4px;column-gap:14px;row-gap:0;align-items:start}
 .grid[data-density="s"]{--tile-min:230px}
 .grid[data-density="l"]{--tile-min:360px}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);display:flex;flex-direction:column;min-width:0;overflow:hidden}
@@ -879,7 +880,7 @@ function renderBoard() {
   const list = visibleClients();
   const existing = new Map($$(':scope > .tile', grid).map(el => [el.dataset.id, el]));
   const keep = new Set(list.map(x => x.c.id));
-  for (const [id, el] of existing) if (!keep.has(id)) el.remove();
+  for (const [id, el] of existing) if (!keep.has(id)) { if (masonryRO) masonryRO.unobserve(el); el.remove(); }
   list.forEach(({ c, jobs }, i) => {
     let el = existing.get(c.id);
     if (!el) el = buildTile(c.id);
@@ -895,7 +896,24 @@ function renderBoard() {
     else if (S.clients.size || S.projects.size) empty.replaceChildren(h('h2', { text: 'Keine Treffer' }), h('p', { text: 'Kein Kunde und kein Job passt zu Suche oder Filter.' }), h('button', { class: 'btn', type: 'button', onclick: resetFilters }, 'Filter zurücksetzen'));
     else empty.replaceChildren(h('h2', { text: 'Noch keine Kunden' }), h('p', { text: 'Jede Kachel ist ein Kunde. Leg einen an und trag darin seine Jobs ein.' }), S.canWrite ? h('button', { class: 'btn primary', type: 'button', onclick: () => openClientDialog() }, 'Neuer Kunde') : null);
   } else empty.hidden = true;
+  layoutMasonry($$(':scope > .tile', grid));
   ensureBoardSortable();
+}
+/* Mauerwerk: Höhe jeder Kachel in Rasterzeilen umrechnen, damit die nächste direkt darunter anschließt */
+const MASONRY_ROW = 4, MASONRY_GAP = 14;
+let masonryRO = null;
+function layoutMasonry(tiles) {
+  for (const t of tiles) {
+    const hgt = t.getBoundingClientRect().height;
+    if (!hgt) continue;
+    const span = 'span ' + Math.max(1, Math.ceil((hgt + MASONRY_GAP) / MASONRY_ROW));
+    if (t.style.gridRowEnd !== span) t.style.gridRowEnd = span;
+  }
+}
+function observeMasonry(el) {
+  if (!('ResizeObserver' in window)) return;
+  if (!masonryRO) masonryRO = new ResizeObserver(entries => layoutMasonry(entries.map(e => e.target)));
+  masonryRO.observe(el);
 }
 function resetFilters() { S.q = ''; $('#q').value = ''; S.status = 'all'; S.person = 'all'; savePrefs(); queueRender(); }
 function buildTile(cid) {
@@ -922,6 +940,7 @@ function buildTile(cid) {
       onEnd(evt) { S.dragging = false; onJobDrop(evt); if (S.pending) { S.pending = false; queueRender(); } }
     });
   }
+  observeMasonry(el);
   return el;
 }
 function buildJob(pid) {
