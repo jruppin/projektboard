@@ -421,6 +421,45 @@ body.wk-dragging,body.wk-dragging *{cursor:grabbing !important;user-select:none}
   .note .del{opacity:1}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+
+/* PDF-Übersicht: nur beim Drucken sichtbar */
+#print-view{display:none}
+@media print{
+  @page{size:A4;margin:14mm 12mm}
+  html,body{background:#fff !important;height:auto}
+  body>*:not(#print-view){display:none !important}
+  #print-view{display:block !important;color:#111;font:10pt/1.4 var(--font-body)}
+  .pv *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .pv-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2pt solid #111;padding-bottom:4pt;margin-bottom:6pt}
+  .pv-head h1{font-size:18pt}
+  .pv-meta{font-size:8.5pt;color:#555}
+  .pv h2{font-size:12.5pt;margin:12pt 0 6pt;display:flex;justify-content:space-between;align-items:baseline;gap:8pt}
+  .pv-sum{font-family:var(--font-mono);font-size:9pt;font-weight:500;color:#444}
+  .pv-client{break-inside:avoid;border:.75pt solid #c8c8c8;border-radius:4pt;overflow:hidden;margin:0 0 7pt}
+  .pv-client-head{background:var(--c);color:#fff;padding:4pt 8pt;font-family:var(--font-display);font-weight:700;font-size:11pt;display:flex;justify-content:space-between;align-items:baseline;gap:8pt}
+  .pv-client-head.on-light{color:#13201d}
+  .pv-client-sub{font-family:var(--font-body);font-weight:500;font-size:8.5pt;opacity:.9}
+  .pv-job{padding:4pt 8pt;border-top:.5pt solid #e3e3e3;break-inside:avoid}
+  .pv-job:first-of-type{border-top:0}
+  .pv-job-line{display:flex;flex-wrap:wrap;gap:3pt 6pt;align-items:baseline}
+  .pv-job-title{font-weight:700;font-size:10.5pt}
+  .pv-tag{font-size:8pt;color:#333;border:.5pt solid #aaa;border-radius:8pt;padding:0 5pt}
+  .pv-tag.overdue{color:#b42121;border-color:#b42121}
+  .pv-team{font-size:8.5pt;color:#555;margin-left:auto}
+  .pv-notes{margin:2pt 0 0 14pt;padding:0;font-size:9.5pt}
+  .pv-notes li{margin:1pt 0}
+  .pv-notes li.done{color:#888;text-decoration:line-through}
+  .pv-empty{color:#777;font-size:9pt;margin:2pt 0}
+  .pv-week{break-before:page}
+  .pv-day{break-inside:avoid;margin-bottom:6pt}
+  .pv-day h3{font-size:10.5pt;margin:8pt 0 3pt;display:flex;justify-content:space-between;border-bottom:.75pt solid #888;padding-bottom:2pt}
+  .pv table{width:100%;border-collapse:collapse;font-size:9pt;table-layout:fixed}
+  .pv th:nth-child(1){width:17%}.pv th:nth-child(2){width:19%}.pv th:nth-child(3){width:26%}.pv th:nth-child(4){width:13%}.pv th:nth-child(5){width:8%}
+  .pv th{text-align:left;font-weight:600;color:#555;font-size:8pt;text-transform:uppercase;letter-spacing:.03em;padding:2pt 5pt;border-bottom:.5pt solid #bbb}
+  .pv td{padding:3pt 5pt;border-bottom:.5pt solid #e3e3e3;vertical-align:top}
+  .pv-num{font-family:var(--font-mono);white-space:nowrap}
+  .pv-dot{display:inline-block;width:7pt;height:7pt;border-radius:2pt;background:var(--c);margin-right:4pt;vertical-align:baseline}
+}
 </style>
 </head>
 <body>
@@ -434,6 +473,7 @@ body.wk-dragging,body.wk-dragging *{cursor:grabbing !important;user-select:none}
   </nav>
   <span class="sync" id="sync" data-state="connecting">Verbinde …</span>
   <span class="me" id="me"></span>
+  <button class="btn" id="print-btn" type="button" title="Übersicht aller Kunden, Jobs, Notizen und der Wochenplanung als PDF"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 6V2.5h7V6M4.5 11.5h-2v-5h11v5h-2"/><rect x="4.5" y="9.5" width="7" height="4.5" rx=".5"/></svg>PDF-Übersicht</button>
   <button class="btn" id="team-btn" type="button" hidden>Team</button>
   <button class="btn ghost" id="logout-btn" type="button">Abmelden</button>
 </header>
@@ -529,6 +569,7 @@ body.wk-dragging,body.wk-dragging *{cursor:grabbing !important;user-select:none}
   </div>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<div id="print-view" class="pv" aria-hidden="true"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
 <script type="module">
@@ -1190,8 +1231,86 @@ function slotCard(s, withHours = true) {
     s.note ? h('div', { class: 'slot-note', text: s.note }) : null
   );
 }
+const abc = (x, y) => String(x).localeCompare(String(y), 'de', { sensitivity: 'base', numeric: true });
+/* ---------- PDF-Übersicht (Druckansicht) ---------- */
+function buildPrintView() {
+  const now = new Date();
+  const ws = S.weekStart, we = addDays(ws, 6);
+  const kw = isoWeek(ws);
+  const root = $('#print-view');
+  const tag = (txt, cls) => h('span', { class: 'pv-tag' + (cls ? ' ' + cls : ''), text: txt });
+  // Teil 1: Kunden, Jobs, Notizen
+  const clients = clientsSorted().map(c => {
+    const all = jobsOf(c.id);
+    const open = all.filter(p => p.status !== 'erledigt');
+    const done = all.length - open.length;
+    const col = c.color || COLORS[0];
+    return h('section', { class: 'pv-client', '--c': col },
+      h('div', { class: 'pv-client-head' + (darkTextOn(col) ? ' on-light' : '') },
+        h('span', { text: c.name || 'Ohne Namen' }),
+        h('span', { class: 'pv-client-sub', text: `${open.length} offene${open.length === 1 ? 'r' : ''} Job${open.length === 1 ? '' : 's'}${done ? ` · ${done} erledigt` : ''}` })),
+      open.length ? open.map(p => {
+        const notes = sortNotes(notesOf(p.id));
+        const wh = weekHours(p.id, ws);
+        let due = null;
+        if (p.due) { const d = parseYmd(p.due); due = tag(`fällig ${fmtD(d)}${d.getFullYear() !== now.getFullYear() ? d.getFullYear() : ''}`, d < today() ? 'overdue' : ''); }
+        return h('div', { class: 'pv-job' },
+          h('div', { class: 'pv-job-line' },
+            h('span', { class: 'pv-job-title', text: p.title || 'Ohne Titel' }),
+            tag(statusLabel(p.status)), due,
+            wh ? tag(`${fmtH(wh)} in KW ${kw}`) : null,
+            (p.members || []).length ? h('span', { class: 'pv-team', text: (p.members || []).map(nameOf).join(', ') }) : null),
+          notes.length ? h('ul', { class: 'pv-notes' }, notes.map(n => h('li', { class: n.done ? 'done' : null, text: n.text }))) : null);
+      }) : h('div', { class: 'pv-job pv-empty', text: 'Keine offenen Jobs.' }));
+  });
+  // Teil 2: Wochenplanung der gewählten Woche (Person-Filter wie in der App)
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = addDays(ws, i), key = ymd(d);
+    const list = slotsOn(key);
+    if (i > 4 && !list.length && !S.weekend) continue;
+    days.push({ d, i, list });
+  }
+  const weekSum = days.reduce((a, x) => a + x.list.reduce((b, s) => b + (Number(s.hours) || 0), 0), 0);
+  const dayBlocks = days.map(({ d, i, list }) => {
+    const sum = list.reduce((a, s) => a + (Number(s.hours) || 0), 0);
+    return h('div', { class: 'pv-day' },
+      h('h3', {}, h('span', { text: `${DAYS_LONG[i]}, ${fmtD(d)}` }), h('span', { class: 'pv-sum', text: sum ? fmtH(sum) : '–' })),
+      list.length ? h('table', {},
+        h('thead', {}, h('tr', {}, ['Zeit', 'Kunde', 'Job', 'Person', 'Dauer', 'Notiz'].map(t => h('th', { text: t })))),
+        h('tbody', {}, list.map(s => {
+          const p = proj(s.projectId); const m = toMin(s.start);
+          return h('tr', {},
+            h('td', { class: 'pv-num', text: m == null ? '–' : `${s.start}–${fromMin(Math.min(24 * 60, m + Math.round((Number(s.hours) || 0) * 60)))}` }),
+            h('td', {}, h('span', { class: 'pv-dot', '--c': jobColor(p) }), clientName(p)),
+            h('td', { text: p.title }),
+            h('td', { text: s.userId ? nameOf(s.userId) : '' }),
+            h('td', { class: 'pv-num', text: fmtH(s.hours) }),
+            h('td', { text: s.note || '' }));
+        }))) : h('p', { class: 'pv-empty', text: 'Nichts geplant.' }));
+  });
+  root.replaceChildren(
+    h('header', { class: 'pv-head' },
+      h('h1', { text: 'Projektübersicht' }),
+      h('div', { class: 'pv-meta', text: `Concept Art Hannover · Stand ${now.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}, ${pad(now.getHours())}:${pad(now.getMinutes())} Uhr` })),
+    h('h2', { text: 'Kunden, Jobs und Notizen' }),
+    ...(clients.length ? clients : [h('p', { class: 'pv-empty', text: 'Noch keine Kunden angelegt.' })]),
+    h('section', { class: 'pv-week' },
+      h('h2', {}, `Wochenplanung KW ${kw} · ${fmtD(ws)}–${fmtD(we)}${we.getFullYear()}`, h('span', { class: 'pv-sum', text: `${fmtH(weekSum)} geplant${S.person !== 'all' ? ' · ' + nameOf(S.person) : ''}` })),
+      dayBlocks));
+}
+function printOverview() {
+  buildPrintView();
+  const old = document.title;
+  document.title = `Projektübersicht KW ${isoWeek(S.weekStart)} ${S.weekStart.getFullYear()}`;
+  const restore = () => { document.title = old; };
+  window.addEventListener('afterprint', restore, { once: true });
+  setTimeout(() => { try { window.print(); } catch (e) { toast('Drucken ist hier nicht möglich.', true); restore(); } }, 60);
+}
+
 function buildPalette(pal) {
-  const groups = clientsSorted().map(c => ({ c, jobs: jobsOf(c.id).filter(p => p.status !== 'erledigt') })).filter(g => g.jobs.length);
+  const groups = clientsSorted().slice().sort((a, b) => abc(a.name, b.name))
+    .map(c => ({ c, jobs: jobsOf(c.id).filter(p => p.status !== 'erledigt').sort((a, b) => abc(a.title, b.title)) })).filter(g => g.jobs.length);
   pal.replaceChildren(...(groups.length ? groups.flatMap(g => [
     h('div', { class: 'pal-client', '--c': g.c.color || COLORS[0], text: g.c.name }),
     ...g.jobs.map(p => h('div', { class: 'pchip' + (darkTextOn(jobColor(p)) ? ' on-light' : ''), 'data-project': p.id, '--c': jobColor(p), title: `${g.c.name}: ${p.title}` }, h('span', { text: p.title })))
@@ -2069,6 +2188,7 @@ async function init() {
   document.body.classList.add('readonly');
   render();
   $('#team-btn').addEventListener('click', openTeamDialog);
+  $('#print-btn').addEventListener('click', printOverview);
   $('#logout-btn').addEventListener('click', async () => { await signOut(FB.auth); location.reload(); });
   if (!FIREBASE_CONFIG || !FIREBASE_CONFIG.apiKey || /DEIN|YOUR/.test(FIREBASE_CONFIG.apiKey)) { authScreen('config'); return; }
   FB.app = initializeApp(FIREBASE_CONFIG);
