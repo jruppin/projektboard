@@ -2052,6 +2052,62 @@ const AUTH_ERR = {
 const authMsg = e => AUTH_ERR[e && e.code] || 'Das hat nicht geklappt. Bitte noch einmal versuchen.';
 
 // Kleine Hülle, damit der restliche Code Firestore wie bisher anspricht
+/* ---------- Import-Schnittstelle für die geplante Aufgabe „Tagesliste aus Mails“ ----------
+   Nur im angemeldeten Browser verfügbar; schreibt mit den Rechten der angemeldeten Person.
+   Legt KEINE Kunden an – nur Notizen und Jobs bei bestehenden Kunden. */
+function exposeImportApi() {
+  const iso = t => t ? new Date(t).toISOString() : null;
+  const norm = x => String(x || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const isReady = () => !!(S.db && S.me && S.canWrite && S.loaded.projects && S.loaded.clients && S.loaded.notes);
+  window.pbImport = Object.freeze({
+    version: 1,
+    ready: isReady,
+    help: 'snapshot(tage=21) · addNote(jobId, text, {mailKey}) · addJob(clientId, titel) – Kunden werden nie angelegt.',
+    snapshot(days = 21) {
+      if (!isReady()) return { ready: false };
+      const since = Date.now() - days * 864e5;
+      const mail = [...S.notes.values()].filter(n => n.source === 'mail');
+      const last = mail.reduce((a, n) => Math.max(a, n.createdAt || 0), 0);
+      return {
+        ready: true, me: nameOf(S.me), lastImport: iso(last),
+        clients: clientsSorted().map(c => ({ id: c.id, name: c.name, jobs: jobsOf(c.id).map(p => ({ id: p.id, title: p.title, status: p.status, due: p.due || '' })) })),
+        mailKeys: mail.map(n => n.mailKey).filter(Boolean),
+        recentMailNotes: mail.filter(n => (n.createdAt || 0) >= since).map(n => ({ jobId: n.projectId, text: n.text, done: !!n.done, at: iso(n.createdAt) }))
+      };
+    },
+    async addNote(jobId, text, opts = {}) {
+      if (!isReady()) return { ok: false, error: 'nicht bereit/angemeldet' };
+      if (!proj(jobId)) return { ok: false, error: 'Job nicht gefunden' };
+      text = clean(String(text || '')).trim().slice(0, 1500);
+      if (!text) return { ok: false, error: 'leerer Text' };
+      const mailKey = opts.mailKey ? String(opts.mailKey).slice(0, 300) : '';
+      const dup = [...S.notes.values()].find(n => n.projectId === jobId && ((mailKey && n.mailKey === mailKey) || norm(n.text) === norm(text)));
+      if (dup) return { ok: true, skipped: 'Dublette', id: dup.id };
+      const id = newId();
+      const body = { projectId: jobId, text, done: false, author: S.me, createdAt: Date.now(), source: 'mail', mailKey };
+      S.notes.set(id, { ...body, id }); queueRender();
+      const ok = await write('notes/' + id, () => nDoc(id).set(body));
+      if (!ok) { S.notes.delete(id); queueRender(); return { ok: false, error: 'Speichern fehlgeschlagen' }; }
+      return { ok: true, id };
+    },
+    async addJob(clientId, title) {
+      if (!isReady()) return { ok: false, error: 'nicht bereit/angemeldet' };
+      if (!client(clientId)) return { ok: false, error: 'Kunde nicht gefunden – Kunden werden nicht automatisch angelegt' };
+      title = clean(String(title || '')).trim().slice(0, 200);
+      if (!title) return { ok: false, error: 'leerer Titel' };
+      const ex = jobsOf(clientId).find(p => norm(p.title) === norm(title));
+      if (ex) return { ok: true, skipped: 'existiert', id: ex.id };
+      const nid = newId();
+      const maxOrder = Math.max(0, ...jobsOf(clientId).map(p => p.order ?? 0));
+      const body = { title, clientId, status: 'offen', due: '', members: [S.me], order: maxOrder + 1000, createdBy: S.me, createdAt: Date.now(), source: 'mail' };
+      S.projects.set(nid, { ...body, id: nid }); queueRender();
+      const ok = await write('projects/' + nid, () => pDoc(nid).set(body));
+      if (!ok) { S.projects.delete(nid); queueRender(); return { ok: false, error: 'Speichern fehlgeschlagen' }; }
+      return { ok: true, id: nid };
+    }
+  });
+}
+
 function makeDb(fs) {
   const wrapErr = e => { const c = (e && e.code) || ''; const map = { 'permission-denied': 'invalid_argument', 'resource-exhausted': 'quota_exceeded', 'unavailable': 'unavailable' }; const err = new Error(e && e.message); err.code = map[c] || c; throw err; };
   const docRef = (col, id) => {
@@ -2203,6 +2259,7 @@ async function onUser(u) {
   S.user = null;
   $('#team-btn').hidden = !admin;
   applyWriteMode();
+  exposeImportApi();
   await registerMe(u);
   subscribe();
   setInterval(() => { if (S.view === 'day' && ymd(S.day) === ymd(today())) queueRender(); }, 60000);
