@@ -651,7 +651,7 @@ a.btn{text-decoration:none;color:inherit}
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, signOut, updateProfile } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
-import { getFirestore, collection as fsCollection, doc as fsDoc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot as fsOnSnapshot } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
+import { getFirestore, collection as fsCollection, doc as fsDoc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot as fsOnSnapshot, query as fsQuery, where as fsWhere } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
 import { FIREBASE_CONFIG } from './firebase-config.js';
 (() => {
 'use strict';
@@ -2253,7 +2253,7 @@ function exposeImportApi() {
   window.pbImport = Object.freeze({
     version: 1,
     ready: isReady,
-    help: 'snapshot(tage=21) · addNote(jobId, text, {mailKey}) · addJob(clientId, titel) · upsertThread({key, projectId, subject, account, messages:[{id, date, dir:"in"|"out", mailbox, from:{name,address}, to:[…], cc:[…], text}]}) – Kunden werden nie angelegt.',
+    help: 'snapshot(tage=21) · team() · threadIndex(ownerUid?) · addNote(jobId, text, {mailKey}) · addJob(clientId, titel) · upsertThread({owner?, key, projectId, subject, account, messages:[{id, date, dir:"in"|"out", mailbox, from:{name,address}, to:[…], cc:[…], text}]}) – Kunden werden nie angelegt; owner = UID der Person, der das Postfach gehört (Standard: angemeldete Person).',
     snapshot(days = 21) {
       if (!isReady()) return { ready: false };
       const since = Date.now() - days * 864e5;
@@ -2290,10 +2290,20 @@ function exposeImportApi() {
       const clip = (v, n) => String(v == null ? '' : v).slice(0, n);
       const key = clip(t.key, 500).trim();
       if (!key) return { ok: false, error: 'key fehlt' };
-      let h1 = 0x811c9dc5, h2 = 0x01000193;
-      for (let i = 0; i < key.length; i++) { const c = key.charCodeAt(i); h1 = Math.imul(h1 ^ c, 16777619) >>> 0; h2 = Math.imul(h2 + c, 2246822519) >>> 0; }
-      const id = 't' + h1.toString(36) + h2.toString(36);
-      const ex = S.threads.get(id);
+      const owner = clip(t.owner || S.me, 128);
+      const own = owner === S.me;
+      if (!own && !S.isAdmin) return { ok: false, error: 'Verläufe anderer Personen darf nur der Admin schreiben' };
+      if (!own && !(S.teamData && S.teamData.has(owner))) return { ok: false, error: 'Besitzer ist kein Teammitglied' };
+      const hashId = str => { let h1 = 0x811c9dc5, h2 = 0x01000193; for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); h1 = Math.imul(h1 ^ c, 16777619) >>> 0; h2 = Math.imul(h2 + c, 2246822519) >>> 0; } return 't' + h1.toString(36) + h2.toString(36); };
+      let id = hashId(owner + '|' + key);
+      let ex = own ? S.threads.get(id) : null;
+      if (own && !ex) {
+        const legacy = hashId(key);
+        let lv = S.threads.get(legacy);
+        if (!lv) { try { const g = await tDoc(legacy).get(); if (g && g.exists) lv = g.data(); } catch (e) { lv = null; } }
+        if (lv && (!lv.owner || lv.owner === owner)) { id = legacy; ex = lv; }
+      }
+      if (!own) { try { const g = await tDoc(id).get(); if (g && g.exists) ex = g.data(); } catch (e) { return { ok: false, error: 'Lesen fehlgeschlagen (' + (e.code || e.message) + ')' }; } }
       const pa = a => (a && typeof a === 'object') ? { name: clip(a.name, 120), address: clip(a.address, 200).toLowerCase() } : { name: '', address: clip(a, 200).toLowerCase() };
       const msgs = new Map(((ex && ex.messages) || []).map(m => [m.id, m]));
       let added = 0;
@@ -2311,12 +2321,31 @@ function exposeImportApi() {
       const parts = new Map();
       for (const m of list) for (const a of [m.from, ...m.to, ...m.cc]) if (a.address && a.address !== account && !parts.has(a.address)) parts.set(a.address, a);
       const lastIn = [...list].reverse().find(m => m.dir === 'in');
-      const body = { key, projectId: t.projectId, subject: clip(t.subject || (ex && ex.subject) || '', 300), account, messages: list, participants: [...parts.values()].slice(0, 60), lastIn: lastIn ? lastIn.id : '', lastAt: list[list.length - 1].date, updatedAt: Date.now(), updatedBy: S.me };
-      const prev = ex;
-      S.threads.set(id, { ...body, id }); queueRender();
+      const body = { owner, key, projectId: t.projectId, subject: clip(t.subject || (ex && ex.subject) || '', 300), account, messages: list, participants: [...parts.values()].slice(0, 60), lastIn: lastIn ? lastIn.id : '', lastAt: list[list.length - 1].date, updatedAt: Date.now(), updatedBy: S.me };
+      const prev = own ? S.threads.get(id) : null;
+      if (own) { S.threads.set(id, { ...body, id }); queueRender(); }
       const ok = await write('threads/' + id, () => tDoc(id).set(body));
-      if (!ok) { if (prev) S.threads.set(id, prev); else S.threads.delete(id); queueRender(); return { ok: false, error: 'Speichern fehlgeschlagen' }; }
-      return { ok: true, id, added, total: list.length };
+      if (!ok) { if (own) { if (prev) S.threads.set(id, prev); else S.threads.delete(id); queueRender(); } return { ok: false, error: 'Speichern fehlgeschlagen' }; }
+      return { ok: true, id, owner, added, total: list.length };
+    },
+    team() {
+      return [...(S.teamData || new Map()).entries()].map(([uid, d]) => ({ uid, name: d.name || '', email: String(d.email || '').toLowerCase(), me: uid === S.me }));
+    },
+    async threadIndex(owner) {
+      if (!isReady()) return { ok: false, error: 'nicht bereit/angemeldet' };
+      owner = owner || S.me;
+      const idx = t => ({ id: t.id, key: t.key, projectId: t.projectId, subject: t.subject, messageIds: (t.messages || []).map(m => m.id), lastAt: t.lastAt });
+      if (owner === S.me) return { ok: true, owner, threads: [...S.threads.values()].map(idx) };
+      if (!S.isAdmin) return { ok: false, error: 'nur Admin' };
+      try { const r = await S.db.collection('threads').whereEq('owner', owner).get(); return { ok: true, owner, threads: r.docs.map(d => idx({ ...d.data(), id: d.id })) }; }
+      catch (e) { return { ok: false, error: e.code || e.message }; }
+    },
+    async migrateOwners() {
+      if (!isReady() || !S.isAdmin) return { ok: false, error: 'nur Admin' };
+      const r = await S.db.collection('threads').getAll();
+      let n = 0;
+      for (const d of r.docs) { const v = d.data(); if (v && !v.owner) { await tDoc(d.id).update({ owner: S.me }); n++; } }
+      return { ok: true, migrated: n, total: r.docs.length };
     },
     async addJob(clientId, title) {
       if (!isReady()) return { ok: false, error: 'nicht bereit/angemeldet' };
@@ -2348,12 +2377,21 @@ function makeDb(fs) {
       delete: () => deleteDoc(r).catch(wrapErr)
     };
   };
+  const mapSnap = snap => ({ docs: snap.docs.map(d => ({ id: d.id, data: () => d.data() })), metadata: { fromCache: snap.metadata.fromCache } });
+  const listen = (ref, next, error) => fsOnSnapshot(ref, { includeMetadataChanges: true }, snap => next(mapSnap(snap)),
+    e => error && error({ code: e.code === 'permission-denied' ? 'revoked' : e.code, message: e.message }));
   return {
     collection: name => ({
       doc: id => docRef(name, id),
-      onSnapshot: (next, error) => fsOnSnapshot(fsCollection(fs, name), { includeMetadataChanges: true },
-        snap => next({ docs: snap.docs.map(d => ({ id: d.id, data: () => d.data() })), metadata: { fromCache: snap.metadata.fromCache } }),
-        e => error && error({ code: e.code === 'permission-denied' ? 'revoked' : e.code, message: e.message }))
+      onSnapshot: (next, error) => listen(fsCollection(fs, name), next, error),
+      getAll: async () => { try { return mapSnap(await getDocs(fsCollection(fs, name))); } catch (e) { wrapErr(e); } },
+      whereEq: (field, value) => {
+        const q = fsQuery(fsCollection(fs, name), fsWhere(field, '==', value));
+        return {
+          onSnapshot: (next, error) => listen(q, next, error),
+          get: async () => { try { return mapSnap(await getDocs(q)); } catch (e) { wrapErr(e); } }
+        };
+      }
     })
   };
 }
@@ -2380,7 +2418,7 @@ function subscribe() {
   sub('projects', S.projects);
   sub('notes', S.notes);
   sub('slots', S.slots);
-  S.db.collection('threads').onSnapshot(snap => {
+  S.db.collection('threads').whereEq('owner', S.me).onSnapshot(snap => {
     S.threads.clear();
     for (const d of snap.docs) { const v = d.data(); if (v) S.threads.set(d.id, { ...v, id: d.id }); }
     S.loaded.threads = true; S.threadsErr = null; queueRender();
