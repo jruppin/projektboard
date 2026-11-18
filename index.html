@@ -375,6 +375,24 @@ body.wk-dragging,body.wk-dragging *{cursor:grabbing !important;user-select:none}
 a.btn{text-decoration:none;color:inherit}
 .mm-actions .btn{min-height:30px;padding:4px 10px;font-size:12.5px}
 .mm-actions .lnk{font-size:12px;color:var(--muted)}
+.job-actions .mail-btn{width:auto;min-width:26px;padding:0 4px;gap:2px;display:inline-flex;align-items:center;justify-content:center}
+.mail-btn svg{width:15px;height:15px}
+.mail-btn .n{font-family:var(--font-mono);font-size:11px;font-weight:500;line-height:1}
+.mail-btn .n:empty{display:none}
+.mail-btn.none{opacity:.4}
+.mail-btn.none:hover{opacity:.8}
+/* E-Mail-Seite je Job */
+.mailpage{display:grid;grid-template-columns:minmax(300px,420px) minmax(0,1fr);gap:16px;align-items:start}
+@media (min-width:901px){#mail-tile{position:sticky;top:78px;max-height:calc(100vh - 92px);overflow:auto;border-radius:var(--r)}}
+@media (max-width:900px){.mailpage{grid-template-columns:minmax(0,1fr)}}
+#mail-tile .tile.size-l .jobs{grid-template-columns:1fr}
+#mail-tile .tile.size-l .job:nth-child(odd){border-right:0}
+#mail-tile .job.mail-sel{background:color-mix(in srgb,var(--c) 10%,var(--surface));box-shadow:inset 3px 0 0 var(--c)}
+#mail-thread{gap:12px}
+#mail-thread .mm{font-size:13.5px}
+#mail-thread .mm-text.clamp{-webkit-line-clamp:16}
+.mailpage-title{font-size:18px;overflow-wrap:anywhere}
+.mailpage-title small{font-family:var(--font-body);font-weight:400;font-size:14px;color:var(--muted)}
 .timeline-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
 .untimed{padding:10px 12px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .untimed .lbl{font-size:12.5px;color:var(--muted);margin-right:4px}
@@ -605,6 +623,18 @@ a.btn{text-decoration:none;color:inherit}
       <aside class="side mail-col" id="day-mail" aria-label="E-Mail-Verläufe der geplanten Jobs"></aside>
     </div>
   </section>
+
+  <!-- E-MAIL-VERLAUF JE JOB -->
+  <section class="view" id="view-mail" aria-label="E-Mail-Verlauf" hidden>
+    <div class="toolbar">
+      <button class="btn" id="mail-back" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>Kunden</button>
+      <h2 class="mailpage-title" id="mail-title"></h2>
+    </div>
+    <div class="mailpage">
+      <div id="mail-tile"></div>
+      <section class="side mail-col" id="mail-thread" aria-label="E-Mail-Verlauf des Jobs"></section>
+    </div>
+  </section>
 </main>
 
 <div class="modal" id="modal" hidden>
@@ -661,7 +691,9 @@ const ICON = {
   cal: '<rect x="2.5" y="3.5" width="11" height="10" rx="1.5"/><path d="M2.5 7h11M5.5 2v3M10.5 2v3"/>',
   grip: '<circle cx="6" cy="4" r=".9" fill="currentColor"/><circle cx="10" cy="4" r=".9" fill="currentColor"/><circle cx="6" cy="8" r=".9" fill="currentColor"/><circle cx="10" cy="8" r=".9" fill="currentColor"/><circle cx="6" cy="12" r=".9" fill="currentColor"/><circle cx="10" cy="12" r=".9" fill="currentColor"/>',
   x: '<path d="m4 4 8 8M12 4l-8 8"/>',
-  chev: '<path d="m4 6 4 4 4-4"/>'
+  chev: '<path d="m4 6 4 4 4-4"/>',
+  mail: '<rect x="2" y="3.5" width="12" height="9" rx="1.5"/><path d="m2.6 4.6 5.4 4.2 5.4-4.2"/>',
+  back: '<path d="M10 3 5 8l5 5"/>'
 };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const pad = n => String(n).padStart(2, '0');
@@ -719,7 +751,7 @@ const S = {
   db: null, user: null, me: null, prof: {}, teamData: new Map(), allowed: [], isAdmin: false, teamDialogOpen: false,
   canWrite: true, writeKnown: false,
   projects: new Map(), clients: new Map(), notes: new Map(), slots: new Map(), team: new Set(),
-  threads: new Map(), threadsErr: null, threadOpen: new Map(), threadAll: new Set(), mmFull: new Set(), mailSig: '',
+  threads: new Map(), threadsErr: null, threadOpen: new Map(), threadAll: new Set(), mmFull: new Set(), mailSig: '', mailSigP: '', mailJob: null,
   loaded: { projects: false, clients: false, notes: false, slots: false }, confirmed: null, openDone: new Set(),
   view: 'board', weekStart: monday(new Date()), day: today(), month: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   person: prefs.person || 'all', q: '', status: 'all',
@@ -993,6 +1025,7 @@ async function render() {
   if (S.view === 'board') renderBoard();
   else if (S.view === 'week') renderWeek();
   else if (S.view === 'month') renderMonth();
+  else if (S.view === 'mail') renderMailView();
   else renderDay();
 }
 function renderMe() {
@@ -1154,6 +1187,7 @@ function buildJob(pid) {
       h('h4', { class: 'job-title' }),
       h('div', { class: 'job-actions' },
         h('button', { class: 'icon-btn notes-tg', type: 'button', 'data-act': 'notes-job', 'aria-expanded': 'true' }, svg(ICON.chev), h('span', { class: 'n' })),
+        h('button', { class: 'icon-btn mail-btn', type: 'button', 'data-act': 'mail-job' }, svg(ICON.mail), h('span', { class: 'n' })),
         h('button', { class: 'icon-btn write-only', type: 'button', 'data-act': 'plan', 'aria-label': 'Zeit einplanen', title: 'Zeit einplanen' }, svg(ICON.cal)),
         h('button', { class: 'icon-btn write-only', type: 'button', 'data-act': 'edit', 'aria-label': 'Job bearbeiten', title: 'Job bearbeiten' }, svg(ICON.edit)))),
     h('div', { class: 'job-meta' }),
@@ -1242,6 +1276,15 @@ function updateJob(je, p, c) {
   const nLabel = (nOpen ? 'Notizen einklappen' : 'Notizen ausklappen') + (nCount ? ` (${nCount})` : '');
   ntg.title = nLabel; ntg.setAttribute('aria-label', nLabel);
   $('.n', ntg).textContent = !nOpen && nCount ? String(nCount) : '';
+  const mb = $('.mail-btn', je);
+  if (mb) {
+    const mc = jobMailCount(p.id);
+    mb.classList.toggle('none', !mc);
+    const ml = mc ? `E-Mail-Verlauf öffnen (${mc} E-Mail${mc === 1 ? '' : 's'})` : 'E-Mail-Verlauf öffnen (noch keine E-Mails zugeordnet)';
+    mb.title = ml; mb.setAttribute('aria-label', ml);
+    $('.n', mb).textContent = mc ? String(mc) : '';
+    je.classList.toggle('mail-sel', S.view === 'mail' && S.mailJob === p.id);
+  }
 
   const ul = $('.notes', je);
   if (ul.contains(document.activeElement)) { je.dataset.stale = '1'; return; }
@@ -1757,20 +1800,28 @@ function renderDayMail(pids) {
   const set = new Set(pids);
   const threads = [...S.threads.values()].filter(t => set.has(t.projectId) && proj(t.projectId) && (t.messages || []).length)
     .sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
-  const sig = JSON.stringify([ymd(S.day), pids, S.threadsErr, threads.map(t => [t.id, t.updatedAt, S.threadOpen.get(t.id), S.threadAll.has(t.id)]), [...S.mmFull]]);
+  const sig = JSON.stringify([ymd(S.day), pids, S.threadsErr, threads.map(t => [t.id, t.updatedAt, S.threadOpen.get('d:' + t.id), S.threadAll.has('d:' + t.id)]), [...S.mmFull]]);
   if (sig === S.mailSig && col.childElementCount) return;
   S.mailSig = sig;
   const scroll = col.scrollTop;
   const head = [h('h4', { text: 'E-Mails' }), h('p', { class: 'hint', text: 'Zugeordnete E-Mail-Verläufe der an diesem Tag geplanten Jobs – neueste oben, stündlich aktualisiert.' })];
   if (S.threadsErr) { col.replaceChildren(...head, h('p', { class: 'hint', text: 'E-Mail-Verläufe sind noch nicht freigeschaltet.' })); return; }
   if (!threads.length) { col.replaceChildren(...head, h('p', { class: 'hint', text: pids.length ? 'Keine zugeordneten E-Mails zu den geplanten Jobs.' : 'Für diesen Tag ist noch nichts geplant.' })); return; }
-  const cards = threads.map((t, i) => {
+  const cards = threads.map((t, i) => threadCard(t, { ctx: 'd', open: i === 0, all: false }));
+  col.replaceChildren(...head, ...cards);
+  col.scrollTop = scroll;
+}
+const jobThreads = pid => [...S.threads.values()].filter(t => t.projectId === pid && (t.messages || []).length).sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
+const jobMailCount = pid => jobThreads(pid).reduce((a, t) => a + t.messages.length, 0);
+function threadCard(t, opt) {
+  {
     const p = proj(t.projectId);
+    const k = opt.ctx + ':' + t.id;
     const msgs = [...t.messages].sort((a, b) => String(b.date).localeCompare(String(a.date)));
     const lastIn = msgs.find(m => m.dir === 'in' && m.id === t.lastIn) || msgs.find(m => m.dir === 'in');
-    const showAll = S.threadAll.has(t.id);
+    const showAll = opt.all !== S.threadAll.has(k);
     const visible = showAll ? msgs : msgs.slice(0, 3);
-    const isOpen = S.threadOpen.has(t.id) ? S.threadOpen.get(t.id) : i === 0;
+    const isOpen = S.threadOpen.has(k) ? S.threadOpen.get(k) : opt.open;
     const det = h('details', { class: 'mt', '--c': jobColor(p), 'data-thread': t.id },
       h('summary', {},
         h('span', { class: 'mt-client', text: `${clientName(p)} · ${p.title}` }),
@@ -1792,12 +1843,48 @@ function renderDayMail(pids) {
             h('a', { class: 'btn primary', href: replyHref(t, m), title: MAIL_HELPER_HINT }, 'Antworten'),
             h('a', { class: 'lnk', href: `message://%3c${encodeURIComponent(m.id)}%3e`, title: 'Diese E-Mail in Apple Mail anzeigen', text: 'In Mail öffnen' })) : null);
       }),
-      msgs.length > 3 ? h('button', { class: 'mt-older', type: 'button', 'data-act': 'mt-older', 'data-thread': t.id, text: showAll ? 'Ältere E-Mails ausblenden' : `${msgs.length - 3} ältere E-Mail${msgs.length - 3 === 1 ? '' : 's'} anzeigen` }) : null);
+      msgs.length > 3 ? h('button', { class: 'mt-older', type: 'button', 'data-act': 'mt-older', 'data-key': k, text: showAll ? 'Ältere E-Mails ausblenden' : `${msgs.length - 3} ältere E-Mail${msgs.length - 3 === 1 ? '' : 's'} anzeigen` }) : null);
     if (isOpen) det.open = true;
-    det.addEventListener('toggle', () => { S.threadOpen.set(t.id, det.open); S.mailSig = ''; });
+    det.addEventListener('toggle', () => { S.threadOpen.set(k, det.open); S.mailSig = ''; S.mailSigP = ''; });
     return det;
-  });
-  col.replaceChildren(...head, ...cards);
+  }
+}
+/* ---------- Seite: E-Mail-Verlauf eines Jobs ---------- */
+function openMailView(pid) {
+  if (!proj(pid)) return;
+  S.mailJob = pid;
+  const tag = '#mail/' + encodeURIComponent(pid);
+  if (location.hash !== tag) location.hash = tag; else { S.view = 'mail'; queueRender(); }
+}
+function renderMailView() {
+  const p = proj(S.mailJob);
+  const tileBox = $('#mail-tile'), col = $('#mail-thread');
+  if (!p) {
+    $('#mail-title').textContent = 'E-Mail-Verlauf';
+    tileBox.replaceChildren();
+    col.replaceChildren(h('p', { class: 'hint', text: S.loaded.projects ? 'Dieser Job wurde nicht gefunden.' : 'Wird geladen …' }));
+    return;
+  }
+  const cid = clientOf(p) ? p.clientId : NO_CLIENT;
+  const c = clientsSorted().find(x => x.id === cid) || { id: cid, name: clientName(p), color: COLORS[0], virtual: true };
+  $('#mail-title').replaceChildren(h('span', { text: 'E-Mail-Verlauf · ' }), p.title || 'Ohne Titel', h('small', { text: ' · ' + (c.name || '') }));
+  // links: die vollständige Kundenkachel (gleiche Funktionen wie in „Kunden“)
+  let el = $(':scope > .tile', tileBox);
+  if (!el || el.dataset.id !== c.id) { if (el && masonryRO) masonryRO.unobserve(el); el = buildTile(c.id); tileBox.replaceChildren(el); }
+  const jobs = jobsOf(c.id).filter(x => x.status !== 'erledigt' || S.showDone || S.openDone.has(c.id) || x.id === p.id);
+  updateTile(el, c, jobs);
+  if (el._sortable) el._sortable.option('disabled', !S.canWrite);
+  // rechts: alle Verläufe dieses Jobs
+  const threads = jobThreads(p.id);
+  const sig = JSON.stringify([p.id, S.threadsErr, threads.map(t => [t.id, t.updatedAt]), [...S.threadOpen], [...S.threadAll], [...S.mmFull]]);
+  if (sig === S.mailSigP && col.childElementCount) return;
+  S.mailSigP = sig;
+  const scroll = col.scrollTop;
+  const n = threads.reduce((a, t) => a + t.messages.length, 0);
+  const head = [h('h4', { text: 'E-Mail-Verlauf' }), h('p', { class: 'hint', text: threads.length ? `${n} E-Mail${n === 1 ? '' : 's'} in ${threads.length} Verl${threads.length === 1 ? 'auf' : 'äufen'} – neueste oben, stündlich aktualisiert.` : 'Neue E-Mails werden stündlich eindeutig zugeordneten Jobs hinzugefügt.' })];
+  if (S.threadsErr) { col.replaceChildren(...head, h('p', { class: 'hint', text: 'E-Mail-Verläufe sind noch nicht freigeschaltet.' })); return; }
+  if (!threads.length) { col.replaceChildren(...head, h('p', { class: 'hint', text: 'Zu diesem Job sind noch keine E-Mails zugeordnet.' })); return; }
+  col.replaceChildren(...head, ...threads.map(t => threadCard(t, { ctx: 'p', open: true, all: true })));
   col.scrollTop = scroll;
 }
 
@@ -1998,11 +2085,12 @@ function editNote(span) {
 /* ---------- Ereignisse ---------- */
 function setView(v, push = true) {
   S.view = v;
-  if (push) { const tag = { board: 'kunden', month: 'monat', week: 'woche', day: 'tag' }[v]; try { if (location.hash !== '#' + tag) history.replaceState(null, '', '#' + tag); } catch (e) { location.hash = tag; } }
+  if (push) { const tag = { board: 'kunden', month: 'monat', week: 'woche', day: 'tag' }[v]; if (tag) { try { if (location.hash !== '#' + tag) history.replaceState(null, '', '#' + tag); } catch (e) { location.hash = tag; } } }
   queueRender();
 }
 function applyHash() {
   const t = (location.hash || '').slice(1);
+  if (t.startsWith('mail/')) { S.view = 'mail'; try { S.mailJob = decodeURIComponent(t.slice(5)); } catch (e) { S.mailJob = t.slice(5); } window.scrollTo(0, 0); return; }
   S.view = t === 'monat' ? 'month' : t === 'woche' ? 'week' : t === 'tag' ? 'day' : 'board';
 }
 function bindStatic() {
@@ -2020,12 +2108,15 @@ function bindStatic() {
   for (const sel of $$('.person-filter')) sel.addEventListener('change', e => { S.person = e.target.value; savePrefs(); e.target.blur(); queueRender(); });
   $('#new-project').addEventListener('click', () => openClientDialog());
   $('#notes-all').addEventListener('click', toggleAllNotes);
-  $('#day-mail').addEventListener('click', e => {
+  for (const sel of ['#day-mail', '#mail-thread']) $(sel).addEventListener('click', e => {
     const b = e.target.closest('button[data-act]'); if (!b) return;
     if (b.dataset.act === 'mm-more') { const id = b.dataset.mid; S.mmFull.has(id) ? S.mmFull.delete(id) : S.mmFull.add(id); }
-    if (b.dataset.act === 'mt-older') { const id = b.dataset.thread; S.threadAll.has(id) ? S.threadAll.delete(id) : S.threadAll.add(id); }
-    S.mailSig = ''; renderDayMail([...new Set(slotsOn(ymd(S.day)).map(s => s.projectId))]);
+    else if (b.dataset.act === 'mt-older') { const k = b.dataset.key; S.threadAll.has(k) ? S.threadAll.delete(k) : S.threadAll.add(k); }
+    else return;
+    e.stopPropagation();
+    S.mailSig = ''; S.mailSigP = ''; queueRender();
   });
+  $('#mail-back').addEventListener('click', () => setView('board'));
   $('#weekgrid').addEventListener('pointerdown', weekPointerDown);
   $('#palette').addEventListener('pointerdown', weekPointerDown);
   $('#week-prev').addEventListener('click', () => { S.weekStart = addDays(S.weekStart, -7); queueRender(); });
@@ -2087,6 +2178,7 @@ function bindStatic() {
         return;
       }
       if (a === 'to-week') { S.weekStart = monday(new Date()); setView('week'); return; }
+      if (a === 'mail-job' && job) { openMailView(job.dataset.job); return; }
       if (a === 'notes-job' && job) { toggleJobNotes(job.dataset.job); return; }
       if (a === 'notes-client' && tile) { toggleClientNotes(tile.dataset.id); return; }
       if (a === 'more' && job) { const id = job.dataset.job; if (S.expanded.has(id)) S.expanded.delete(id); else S.expanded.add(id); queueRender(); return; }
