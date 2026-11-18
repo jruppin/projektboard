@@ -1794,7 +1794,7 @@ const mailHref = id => 'message://%3c' + String(id).replace(/[%<>"\s#?]/g, c => 
 function renderDayMail(pids) {
   const col = $('#day-mail'); if (!col) return;
   const set = new Set(pids);
-  const threads = [...S.threads.values()].filter(t => set.has(t.projectId) && proj(t.projectId) && (t.messages || []).length)
+  const threads = [...S.threads.values()].filter(t => threadJobs(t).some(j => set.has(j) && proj(j)) && (t.messages || []).length)
     .sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
   const sig = JSON.stringify([ymd(S.day), pids, S.threadsErr, threads.map(t => [t.id, t.updatedAt, S.threadOpen.get('d:' + t.id), S.threadAll.has('d:' + t.id)]), [...S.mmFull]]);
   if (sig === S.mailSig && col.childElementCount) return;
@@ -1803,15 +1803,16 @@ function renderDayMail(pids) {
   const head = [h('h4', { text: 'E-Mails' }), h('p', { class: 'hint', text: 'Zugeordnete E-Mail-Verläufe der an diesem Tag geplanten Jobs – neueste oben, stündlich aktualisiert.' })];
   if (S.threadsErr) { col.replaceChildren(...head, h('p', { class: 'hint', text: 'E-Mail-Verläufe sind noch nicht freigeschaltet.' })); return; }
   if (!threads.length) { col.replaceChildren(...head, h('p', { class: 'hint', text: pids.length ? 'Keine zugeordneten E-Mails zu den geplanten Jobs.' : 'Für diesen Tag ist noch nichts geplant.' })); return; }
-  const cards = threads.map((t, i) => threadCard(t, { ctx: 'd', open: i === 0, all: false }));
+  const cards = threads.map((t, i) => threadCard(t, { ctx: 'd', open: i === 0, all: false, pid: threadJobs(t).find(j => set.has(j)) }));
   col.replaceChildren(...head, ...cards);
   col.scrollTop = scroll;
 }
-const jobThreads = pid => [...S.threads.values()].filter(t => t.projectId === pid && (t.messages || []).length).sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
+const threadJobs = t => [...new Set([t.projectId, ...(Array.isArray(t.projectIds) ? t.projectIds : [])].filter(Boolean))];
+const jobThreads = pid => [...S.threads.values()].filter(t => threadJobs(t).includes(pid) && (t.messages || []).length).sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
 const jobMailCount = pid => jobThreads(pid).reduce((a, t) => a + t.messages.length, 0);
 function threadCard(t, opt) {
   {
-    const p = proj(t.projectId);
+    const p = proj(opt.pid) || proj(t.projectId) || proj(threadJobs(t).find(j => proj(j)));
     const k = opt.ctx + ':' + t.id;
     const msgs = [...t.messages].sort((a, b) => String(b.date).localeCompare(String(a.date)));
     const lastIn = msgs.find(m => m.dir === 'in' && m.id === t.lastIn) || msgs.find(m => m.dir === 'in');
@@ -1879,7 +1880,7 @@ function renderMailView() {
   const head = [h('h4', { text: 'E-Mail-Verlauf' }), h('p', { class: 'hint', text: threads.length ? `${n} E-Mail${n === 1 ? '' : 's'} in ${threads.length} Verl${threads.length === 1 ? 'auf' : 'äufen'} – neueste oben, stündlich aktualisiert.` : 'Neue E-Mails werden stündlich eindeutig zugeordneten Jobs hinzugefügt.' })];
   if (S.threadsErr) { col.replaceChildren(...head, h('p', { class: 'hint', text: 'E-Mail-Verläufe sind noch nicht freigeschaltet.' })); return; }
   if (!threads.length) { col.replaceChildren(...head, h('p', { class: 'hint', text: 'Zu diesem Job sind noch keine E-Mails zugeordnet.' })); return; }
-  col.replaceChildren(...head, ...threads.map(t => threadCard(t, { ctx: 'p', open: true, all: true })));
+  col.replaceChildren(...head, ...threads.map(t => threadCard(t, { ctx: 'p', open: true, all: true, pid: p.id })));
   col.scrollTop = scroll;
 }
 
@@ -2248,7 +2249,7 @@ function exposeImportApi() {
   window.pbImport = Object.freeze({
     version: 1,
     ready: isReady,
-    help: 'snapshot(tage=21) · team() · threadIndex(ownerUid?) · addNote(jobId, text, {mailKey}) · addJob(clientId, titel) · upsertThread({owner?, key, projectId, subject, account, messages:[{id, date, dir:"in"|"out", mailbox, from:{name,address}, to:[…], cc:[…], text}]}) – Kunden werden nie angelegt; owner = UID der Person, der das Postfach gehört (Standard: angemeldete Person).',
+    help: 'snapshot(tage=21) · team() · threadIndex(ownerUid?) · addNote(jobId, text, {mailKey}) · addJob(clientId, titel) · upsertThread({owner?, key, projectId, projectIds?, subject, account, messages:[{id, date, dir:"in"|"out", mailbox, from:{name,address}, to:[…], cc:[…], text}]}) – Kunden werden nie angelegt; owner = UID der Person, der das Postfach gehört (Standard: angemeldete Person).',
     snapshot(days = 21) {
       if (!isReady()) return { ready: false };
       const since = Date.now() - days * 864e5;
@@ -2259,7 +2260,7 @@ function exposeImportApi() {
         clients: clientsSorted().map(c => ({ id: c.id, name: c.name, jobs: jobsOf(c.id).map(p => ({ id: p.id, title: p.title, status: p.status, due: p.due || '' })) })),
         mailKeys: mail.map(n => n.mailKey).filter(Boolean),
         threadsReady: !!S.loaded.threads && !S.threadsErr,
-        threads: [...S.threads.values()].map(t => ({ id: t.id, key: t.key, projectId: t.projectId, subject: t.subject, messageIds: (t.messages || []).map(m => m.id), lastAt: t.lastAt })),
+        threads: [...S.threads.values()].map(t => ({ id: t.id, key: t.key, projectId: t.projectId, projectIds: threadJobs(t), subject: t.subject, messageIds: (t.messages || []).map(m => m.id), lastAt: t.lastAt })),
         recentMailNotes: mail.filter(n => (n.createdAt || 0) >= since).map(n => ({ jobId: n.projectId, text: n.text, done: !!n.done, at: iso(n.createdAt) }))
       };
     },
@@ -2281,7 +2282,10 @@ function exposeImportApi() {
     async upsertThread(t = {}) {
       if (!isReady()) return { ok: false, error: 'nicht bereit/angemeldet' };
       if (!S.loaded.threads || S.threadsErr) return { ok: false, error: 'E-Mail-Verläufe nicht freigeschaltet (' + (S.threadsErr || 'lädt') + ')' };
-      if (!proj(t.projectId)) return { ok: false, error: 'Job nicht gefunden' };
+      const jobIds = [...new Set([t.projectId, ...(Array.isArray(t.projectIds) ? t.projectIds : [])].filter(Boolean).map(String))].slice(0, 10);
+      if (!jobIds.length) return { ok: false, error: 'projectId fehlt' };
+      const badJob = jobIds.find(j => !proj(j));
+      if (badJob) return { ok: false, error: 'Job nicht gefunden: ' + badJob };
       const clip = (v, n) => String(v == null ? '' : v).slice(0, n);
       const key = clip(t.key, 500).trim();
       if (!key) return { ok: false, error: 'key fehlt' };
@@ -2316,7 +2320,8 @@ function exposeImportApi() {
       const parts = new Map();
       for (const m of list) for (const a of [m.from, ...m.to, ...m.cc]) if (a.address && a.address !== account && !parts.has(a.address)) parts.set(a.address, a);
       const lastIn = [...list].reverse().find(m => m.dir === 'in');
-      const body = { owner, key, projectId: t.projectId, subject: clip(t.subject || (ex && ex.subject) || '', 300), account, messages: list, participants: [...parts.values()].slice(0, 60), lastIn: lastIn ? lastIn.id : '', lastAt: list[list.length - 1].date, updatedAt: Date.now(), updatedBy: S.me };
+      const allJobs = Array.isArray(t.projectIds) ? jobIds : [...new Set([...jobIds, ...(((ex && ex.projectIds) || []).filter(j => proj(j)))])];
+      const body = { owner, key, projectId: allJobs[0], projectIds: allJobs, subject: clip(t.subject || (ex && ex.subject) || '', 300), account, messages: list, participants: [...parts.values()].slice(0, 60), lastIn: lastIn ? lastIn.id : '', lastAt: list[list.length - 1].date, updatedAt: Date.now(), updatedBy: S.me };
       const prev = own ? S.threads.get(id) : null;
       if (own) { S.threads.set(id, { ...body, id }); queueRender(); }
       const ok = await write('threads/' + id, () => tDoc(id).set(body));
@@ -2329,7 +2334,7 @@ function exposeImportApi() {
     async threadIndex(owner) {
       if (!isReady()) return { ok: false, error: 'nicht bereit/angemeldet' };
       owner = owner || S.me;
-      const idx = t => ({ id: t.id, key: t.key, projectId: t.projectId, subject: t.subject, messageIds: (t.messages || []).map(m => m.id), lastAt: t.lastAt });
+      const idx = t => ({ id: t.id, key: t.key, projectId: t.projectId, projectIds: threadJobs(t), subject: t.subject, messageIds: (t.messages || []).map(m => m.id), lastAt: t.lastAt });
       if (owner === S.me) return { ok: true, owner, threads: [...S.threads.values()].map(idx) };
       if (!S.isAdmin) return { ok: false, error: 'nur Admin' };
       try { const r = await S.db.collection('threads').whereEq('owner', owner).get(); return { ok: true, owner, threads: r.docs.map(d => idx({ ...d.data(), id: d.id })) }; }
