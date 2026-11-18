@@ -374,6 +374,7 @@ body.wk-dragging,body.wk-dragging *{cursor:grabbing !important;user-select:none}
 .mm-actions{display:flex;flex-wrap:wrap;gap:8px 12px;margin-top:8px;align-items:center}
 a.btn{text-decoration:none;color:inherit}
 .mm-actions .btn{min-height:30px;padding:4px 10px;font-size:12.5px}
+.mm-actions .btn svg{width:15px;height:15px}
 .mm-actions .lnk{font-size:12px;color:var(--muted)}
 .job-actions .mail-btn{width:auto;min-width:26px;padding:0 4px;gap:2px;display:inline-flex;align-items:center;justify-content:center}
 .mail-btn svg{width:15px;height:15px}
@@ -1783,18 +1784,13 @@ function renderDay() {
 }
 
 /* ---------- E-Mail-Verläufe (Tagesansicht, rechte Spalte) ---------- */
-const MAIL_HELPER_HINT = 'Öffnet in Apple Mail „Allen antworten“ auf genau diese E-Mail (Mail-Helfer PBMail auf dem Mac nötig).';
 function fmtMailDate(iso) {
   const d = new Date(iso); if (isNaN(d)) return '';
   return d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit' }) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
 }
 const addrLabel = a => a ? (a.name && a.name !== a.address ? a.name : a.address) : '';
-function replyHref(t, m) {
-  const own = (t.account || '').toLowerCase();
-  const have = new Set([m.from, ...(m.to || []), ...(m.cc || [])].map(a => (a && a.address || '').toLowerCase()));
-  const extra = (t.participants || []).map(a => (a.address || '').toLowerCase()).filter(a => a && a !== own && !have.has(a));
-  return `pbmail://reply?id=${encodeURIComponent(m.id)}&mb=${encodeURIComponent(m.mailbox || '')}&cc=${encodeURIComponent(extra.join(','))}`;
-}
+// Öffnet genau diese E-Mail in Apple Mail (nur anzeigen, keine Antwort)
+const mailHref = id => 'message://%3c' + String(id).replace(/[%<>"\s#?]/g, c => encodeURIComponent(c)) + '%3e';
 function renderDayMail(pids) {
   const col = $('#day-mail'); if (!col) return;
   const set = new Set(pids);
@@ -1840,8 +1836,7 @@ function threadCard(t, opt) {
           h('div', { class: 'mm-text' + (long && !full ? ' clamp' : ''), text: m.text || '' }),
           long ? h('button', { class: 'mm-more', type: 'button', 'data-act': 'mm-more', 'data-mid': m.id, text: full ? 'Weniger anzeigen' : 'Ganzen Text anzeigen' }) : null,
           lastIn && m.id === lastIn.id ? h('div', { class: 'mm-actions' },
-            h('a', { class: 'btn primary', href: replyHref(t, m), title: MAIL_HELPER_HINT }, 'Antworten'),
-            h('a', { class: 'lnk', href: `message://%3c${encodeURIComponent(m.id)}%3e`, title: 'Diese E-Mail in Apple Mail anzeigen', text: 'In Mail öffnen' })) : null);
+            h('a', { class: 'btn primary', href: mailHref(m.id), title: 'Diese E-Mail in Apple Mail öffnen' }, svg(ICON.mail), 'In Mail öffnen')) : null);
       }),
       msgs.length > 3 ? h('button', { class: 'mt-older', type: 'button', 'data-act': 'mt-older', 'data-key': k, text: showAll ? 'Ältere E-Mails ausblenden' : `${msgs.length - 3} ältere E-Mail${msgs.length - 3 === 1 ? '' : 's'} anzeigen` }) : null);
     if (isOpen) det.open = true;
