@@ -62,6 +62,7 @@ h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance;margin:0;letter-sp
 .brand{display:flex;align-items:baseline;gap:8px}
 .brand h1{font-size:22px}
 .brand span{color:var(--muted);font-size:13px}
+.tabnav{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .tabs{display:flex;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px}
 .tab{border:0;background:transparent;padding:6px 16px;border-radius:999px;font-weight:500;color:var(--muted)}
 .tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
@@ -578,12 +579,16 @@ a.btn{text-decoration:none;color:inherit}
 <body>
 <header class="top">
   <div class="brand"><h1>Projektboard</h1><span>Concept Art Hannover</span></div>
-  <nav class="tabs" role="tablist" aria-label="Ansicht">
+  <nav class="tabnav" aria-label="Ansicht">
+  <div class="tabs" role="tablist" aria-label="Kacheln">
     <button class="tab" role="tab" data-view="board" id="tab-board">Projekte</button>
     <button class="tab" role="tab" data-view="boards" id="tab-boards" title="Deine persönlichen Kacheln – nur für dich sichtbar">Boards</button>
+  </div>
+  <div class="tabs" role="tablist" aria-label="Planung">
     <button class="tab" role="tab" data-view="month" id="tab-month">Monat</button>
     <button class="tab" role="tab" data-view="week" id="tab-week">Woche</button>
     <button class="tab" role="tab" data-view="day" id="tab-day">Tag</button>
+  </div>
   </nav>
   <div class="top-right">
   <span class="sync" id="sync" data-state="connecting">Verbinde …</span>
