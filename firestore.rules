@@ -21,5 +21,12 @@ service cloud.firestore {
     match /projects/{id} { allow read, write: if isMember(); }
     match /notes/{id}    { allow read, write: if isMember(); }
     match /slots/{id}    { allow read, write: if isMember(); }
+    // E-Mail-Verläufe: alle Mitglieder lesen alle Verläufe; schreiben nur die Besitzerin/der Besitzer (owner) bzw. der Admin für den stündlichen Import
+    match /threads/{id} {
+      allow read: if isMember();
+      allow create: if isMember() && (request.resource.data.owner == request.auth.uid || isAdmin());
+      allow update: if isMember() && (resource.data.get('owner', '') == request.auth.uid || isAdmin()) && (request.resource.data.get('owner', '') == resource.data.get('owner', '') || isAdmin());
+      allow delete: if isMember() && (resource.data.get('owner', '') == request.auth.uid || isAdmin());
+    }
   }
 }

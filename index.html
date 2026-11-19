@@ -1794,8 +1794,7 @@ const mailHref = id => 'message://%3c' + String(id).replace(/[%<>"\s#?]/g, c => 
 function renderDayMail(pids) {
   const col = $('#day-mail'); if (!col) return;
   const set = new Set(pids);
-  const threads = [...S.threads.values()].filter(t => threadJobs(t).some(j => set.has(j) && proj(j)) && (t.messages || []).length)
-    .sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
+  const threads = dedupeThreads([...S.threads.values()].filter(t => threadJobs(t).some(j => set.has(j) && proj(j)) && (t.messages || []).length));
   const sig = JSON.stringify([ymd(S.day), pids, S.threadsErr, threads.map(t => [t.id, t.updatedAt, S.threadOpen.get('d:' + t.id), S.threadAll.has('d:' + t.id)]), [...S.mmFull]]);
   if (sig === S.mailSig && col.childElementCount) return;
   S.mailSig = sig;
@@ -1807,8 +1806,21 @@ function renderDayMail(pids) {
   col.replaceChildren(...head, ...cards);
   col.scrollTop = scroll;
 }
+const isMine = t => !t.owner || t.owner === S.me;
+const myThreads = () => [...S.threads.values()].filter(isMine);
+const ownerLabel = t => isMine(t) ? '' : 'Postfach ' + (((S.teamData && S.teamData.get(t.owner)) || {}).name || 'Kollegin/Kollege');
+// gleiche E-Mail aus mehreren Postfächern nur einmal zeigen (eigenes Postfach zuerst)
+const dedupeThreads = threads => {
+  const seen = new Set(), out = [];
+  for (const t of [...threads].sort((a, b) => (isMine(b) - isMine(a)) || String(b.lastAt).localeCompare(String(a.lastAt)))) {
+    const msgs = (t.messages || []).filter(m => !seen.has(m.id));
+    msgs.forEach(m => seen.add(m.id));
+    if (msgs.length) out.push(msgs.length === t.messages.length ? t : { ...t, messages: msgs });
+  }
+  return out.sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
+};
 const threadJobs = t => [...new Set([t.projectId, ...(Array.isArray(t.projectIds) ? t.projectIds : [])].filter(Boolean))];
-const jobThreads = pid => [...S.threads.values()].filter(t => threadJobs(t).includes(pid) && (t.messages || []).length).sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
+const jobThreads = pid => dedupeThreads([...S.threads.values()].filter(t => threadJobs(t).includes(pid) && (t.messages || []).length));
 const jobMailCount = pid => jobThreads(pid).reduce((a, t) => a + t.messages.length, 0);
 function threadCard(t, opt) {
   {
@@ -1823,7 +1835,7 @@ function threadCard(t, opt) {
       h('summary', {},
         h('span', { class: 'mt-client', text: `${clientName(p)} · ${p.title}` }),
         h('span', { class: 'mt-subj', text: t.subject || '(ohne Betreff)' }),
-        h('span', { class: 'mt-meta', text: `${msgs.length} E-Mail${msgs.length === 1 ? '' : 's'} · zuletzt ${fmtMailDate(msgs[0].date)}` })),
+        h('span', { class: 'mt-meta', text: `${ownerLabel(t) ? ownerLabel(t) + ' · ' : ''}${msgs.length} E-Mail${msgs.length === 1 ? '' : 's'} · zuletzt ${fmtMailDate(msgs[0].date)}` })),
       ...visible.map(m => {
         const full = S.mmFull.has(m.id);
         const long = (m.text || '').length > 700 || (m.text || '').split('\n').length > 10;
@@ -1836,7 +1848,7 @@ function threadCard(t, opt) {
           rcpt.length ? h('div', { class: 'mm-to', text: 'an ' + rcpt.join(', ') }) : null,
           h('div', { class: 'mm-text' + (long && !full ? ' clamp' : ''), text: m.text || '' }),
           long ? h('button', { class: 'mm-more', type: 'button', 'data-act': 'mm-more', 'data-mid': m.id, text: full ? 'Weniger anzeigen' : 'Ganzen Text anzeigen' }) : null,
-          lastIn && m.id === lastIn.id ? h('div', { class: 'mm-actions' },
+          isMine(t) && lastIn && m.id === lastIn.id ? h('div', { class: 'mm-actions' },
             h('a', { class: 'btn primary', href: mailHref(m.id), title: 'Diese E-Mail in Apple Mail öffnen' }, svg(ICON.mail), 'In Mail öffnen')) : null);
       }),
       msgs.length > 3 ? h('button', { class: 'mt-older', type: 'button', 'data-act': 'mt-older', 'data-key': k, text: showAll ? 'Ältere E-Mails ausblenden' : `${msgs.length - 3} ältere E-Mail${msgs.length - 3 === 1 ? '' : 's'} anzeigen` }) : null);
@@ -2260,7 +2272,7 @@ function exposeImportApi() {
         clients: clientsSorted().map(c => ({ id: c.id, name: c.name, jobs: jobsOf(c.id).map(p => ({ id: p.id, title: p.title, status: p.status, due: p.due || '' })) })),
         mailKeys: mail.map(n => n.mailKey).filter(Boolean),
         threadsReady: !!S.loaded.threads && !S.threadsErr,
-        threads: [...S.threads.values()].map(t => ({ id: t.id, key: t.key, projectId: t.projectId, projectIds: threadJobs(t), subject: t.subject, messageIds: (t.messages || []).map(m => m.id), lastAt: t.lastAt })),
+        threads: myThreads().map(t => ({ id: t.id, key: t.key, projectId: t.projectId, projectIds: threadJobs(t), subject: t.subject, messageIds: (t.messages || []).map(m => m.id), lastAt: t.lastAt })),
         recentMailNotes: mail.filter(n => (n.createdAt || 0) >= since).map(n => ({ jobId: n.projectId, text: n.text, done: !!n.done, at: iso(n.createdAt) }))
       };
     },
@@ -2335,7 +2347,7 @@ function exposeImportApi() {
       if (!isReady()) return { ok: false, error: 'nicht bereit/angemeldet' };
       owner = owner || S.me;
       const idx = t => ({ id: t.id, key: t.key, projectId: t.projectId, projectIds: threadJobs(t), subject: t.subject, messageIds: (t.messages || []).map(m => m.id), lastAt: t.lastAt });
-      if (owner === S.me) return { ok: true, owner, threads: [...S.threads.values()].map(idx) };
+      if (owner === S.me) return { ok: true, owner, threads: myThreads().map(idx) };
       if (!S.isAdmin) return { ok: false, error: 'nur Admin' };
       try { const r = await S.db.collection('threads').whereEq('owner', owner).get(); return { ok: true, owner, threads: r.docs.map(d => idx({ ...d.data(), id: d.id })) }; }
       catch (e) { return { ok: false, error: e.code || e.message }; }
@@ -2418,11 +2430,15 @@ function subscribe() {
   sub('projects', S.projects);
   sub('notes', S.notes);
   sub('slots', S.slots);
-  S.db.collection('threads').whereEq('owner', S.me).onSnapshot(snap => {
+  const onThreads = snap => {
     S.threads.clear();
     for (const d of snap.docs) { const v = d.data(); if (v) S.threads.set(d.id, { ...v, id: d.id }); }
     S.loaded.threads = true; S.threadsErr = null; queueRender();
-  }, err => { console.warn('threads', err); S.threadsErr = (err && err.code) || 'error'; queueRender(); });
+  };
+  const ownThreads = () => S.db.collection('threads').whereEq('owner', S.me).onSnapshot(onThreads, err => { console.warn('threads', err); S.threadsErr = (err && err.code) || 'error'; queueRender(); });
+  // Alle Verläufe des Teams lesen; klappt das (noch) nicht, nur die eigenen
+  let teamOk = false;
+  S.db.collection('threads').onSnapshot(snap => { teamOk = true; onThreads(snap); }, err => { console.warn('threads (Team)', err); if (!teamOk) ownThreads(); });
   S.db.collection('team').onSnapshot(snap => {
     S.teamData = new Map(snap.docs.map(d => [d.id, d.data() || {}]));
     S.team = new Set(S.teamData.keys()); queueRender();
