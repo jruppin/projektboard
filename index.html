@@ -348,9 +348,12 @@ body.wk-dragging,body.wk-dragging *{cursor:grabbing !important;user-select:none}
 @media (hover:none){.m-add{opacity:1}}
 
 /* Tag */
-.day-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px minmax(320px,400px);gap:14px;align-items:start}
-@media (max-width:1279px){.day-layout{grid-template-columns:minmax(0,1fr) 300px}.mail-col{grid-column:1/-1}}
-@media (min-width:1280px){.mail-col{position:sticky;top:78px;max-height:calc(100vh - 92px);overflow:auto}}
+.day-layout{display:grid;grid-template-columns:200px minmax(0,1fr) 280px minmax(300px,380px);gap:14px;align-items:start}
+.readonly .day-layout{grid-template-columns:minmax(0,1fr) 280px minmax(300px,380px)}
+@media (max-width:1479px){.day-layout{grid-template-columns:200px minmax(0,1fr) 280px}.readonly .day-layout{grid-template-columns:minmax(0,1fr) 280px}.mail-col{grid-column:1/-1}}
+#palette-day .pchip{cursor:grab}
+#untimed.drop{outline:2px dashed var(--accent);outline-offset:-3px;background:var(--accent-soft)}
+@media (min-width:1480px){.mail-col{position:sticky;top:78px;max-height:calc(100vh - 92px);overflow:auto}}
 .mail-col{gap:10px;align-content:start}
 .mail-col .hint{margin:0}
 .mt{border:1px solid var(--line);border-left:4px solid var(--c);border-radius:8px;background:var(--surface);min-width:0}
@@ -661,6 +664,11 @@ a.btn{text-decoration:none;color:inherit}
       <button class="btn primary write-only" id="day-add" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>Zeit einplanen</button>
     </div>
     <div class="day-layout">
+      <aside class="palette write-only" aria-label="Jobs zum Einplanen">
+        <h4>Jobs</h4>
+        <p class="hint">Job an die gewünschte Uhrzeit ziehen oder oben in „ohne Uhrzeit“. Ein Klick auf einen Job öffnet das Planungsfenster.</p>
+        <div class="palette-list" id="palette-day"></div>
+      </aside>
       <div class="timeline-card">
         <div class="untimed" id="untimed"></div>
         <div class="timeline" id="timeline"></div>
@@ -1639,7 +1647,7 @@ function weekPointerDown(e) {
   const resize = e.target.closest('.wk .block-resize');
   if (resize) { onBlockPointerDown(e); return; }
   if (e.target.closest('button')) return;
-  const src = e.target.closest('#palette .pchip, .wk .slot, .wk .block');
+  const src = e.target.closest('#palette .pchip, #palette-day .pchip, .wk .slot, .wk .block');
   if (!src || e.pointerType === 'touch') return;
   const isNew = src.classList.contains('pchip');
   const s = isNew ? null : S.slots.get(src.dataset.slot);
@@ -1658,7 +1666,7 @@ function weekPointerDown(e) {
   e.preventDefault();
   try { src.setPointerCapture(e.pointerId); } catch (er) {}
   S.dragging = true;
-  const clearDrop = () => $$('.wk-untimed.drop').forEach(x => x.classList.remove('drop'));
+  const clearDrop = () => $$('.wk-untimed.drop, #untimed.drop').forEach(x => x.classList.remove('drop'));
   const onMove = ev => {
     if (!moved && Math.hypot(ev.clientX - startX, ev.clientY - startY) < 5) return;
     if (!moved) {
@@ -1666,7 +1674,7 @@ function weekPointerDown(e) {
       if (isBlock) grabMin = (startY - srcTop) / Number(src.parentElement.dataset.px) * 60;
     }
     const el = document.elementFromPoint(ev.clientX, ev.clientY);
-    const col = el && el.closest('.wk-col'), strip = el && el.closest('.wk-untimed');
+    const col = el && (el.closest('.wk-col') || el.closest('#view-day .lane-area')), strip = el && (el.closest('.wk-untimed') || el.closest('#untimed'));
     clearDrop();
     if (col) {
       const H0 = +col.dataset.h0, H1 = +col.dataset.h1, PX = +col.dataset.px, r = col.getBoundingClientRect();
@@ -1781,6 +1789,8 @@ function onBlockPointerDown(e) {
 function renderDay() {
   const d = S.day, key = ymd(d);
   $('#day-label').replaceChildren(`${DAYS_LONG[wdIdx(d)]}, ${d.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })}`, h('span', { style: 'color:var(--muted);font-weight:400;font-family:var(--font-body);font-size:14px', text: ` · KW ${isoWeek(d)}` }));
+  if (S.canWrite && !S.dragging) buildPalette($('#palette-day'));
+  $('#untimed').dataset.date = key;
   const list = slotsOn(key);
   const untimed = list.filter(s => toMin(s.start) == null);
   const timed = list.filter(s => toMin(s.start) != null);
@@ -2352,6 +2362,8 @@ function bindStatic() {
   $('#idea-list').addEventListener('keydown', e => { const k = e.target.dataset && e.target.dataset.ideaInput; if (!k) return; if (e.key === 'Escape' && k.startsWith('e:')) { S.ideaEdit = null; S.ideaDrafts.delete(k); queueRender(); return; } if (e.key !== 'Enter' || e.isComposing) return; if (k.startsWith('c:') && !e.shiftKey) { e.preventDefault(); sendComment(k.slice(2)); } else if (k.startsWith('e:') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveIdeaEdit(k.slice(2)); } });
   $('#weekgrid').addEventListener('pointerdown', weekPointerDown);
   $('#palette').addEventListener('pointerdown', weekPointerDown);
+  $('#palette-day').addEventListener('pointerdown', weekPointerDown);
+  $('#palette-day').addEventListener('click', e => { const c = e.target.closest('.pchip'); if (!c || !S.canWrite || Date.now() - (S.suppressClick || 0) < 400) return; openSlotDialog({ projectId: c.dataset.project, date: ymd(S.day) }); });
   $('#week-prev').addEventListener('click', () => { S.weekStart = addDays(S.weekStart, -7); queueRender(); });
   $('#week-next').addEventListener('click', () => { S.weekStart = addDays(S.weekStart, 7); queueRender(); });
   $('#week-today').addEventListener('click', () => { S.weekStart = monday(new Date()); queueRender(); });
