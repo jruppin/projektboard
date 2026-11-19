@@ -425,6 +425,17 @@ a.btn{text-decoration:none;color:inherit}
 .cmt-add{display:flex;gap:8px;align-items:flex-end}
 .cmt-add textarea{min-height:36px;height:36px;font-size:13px}
 .cmt-add .btn{min-height:36px}
+#idea-btn{position:relative}
+.ibadge{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-size:11px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+@media (max-width:1140px){.ibadge{position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;font-size:10px;padding:0 4px;border:2px solid var(--surface)}}
+.idea-done+.idea-acts{margin-left:0}
+.idea-done{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none;padding:2px 6px;border-radius:6px}
+.idea-done:hover{background:var(--surface-2);color:var(--ink)}
+.idea-done input{width:15px;height:15px;margin:0;accent-color:var(--ok)}
+.idea.done{border-left-color:var(--ok);background:color-mix(in srgb,var(--ok) 4%,var(--surface))}
+.idea.done .idea-text{color:var(--muted)}
+.idea-donebar{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:3px 8px;border-radius:999px;background:color-mix(in srgb,var(--ok) 14%,var(--surface));color:var(--ink);font-size:12px}
+.idea-donebar svg{width:13px;height:13px;color:var(--ok)}
 .mailpage-title small{font-family:var(--font-body);font-weight:400;font-size:14px;color:var(--muted)}
 .timeline-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
 .untimed{padding:10px 12px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -565,7 +576,7 @@ a.btn{text-decoration:none;color:inherit}
   <div class="top-right">
   <span class="sync" id="sync" data-state="connecting">Verbinde …</span>
   <span class="me" id="me"></span>
-  <button class="btn" id="idea-btn" type="button" title="Änderungswünsche &amp; Ideen fürs Projektboard" aria-label="Änderungswünsche und Ideen" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.2 12.5h3.6M6.7 14.5h2.6M8 1.5a4.5 4.5 0 0 0-2.7 8.1c.5.4.8.9.8 1.4v.5h3.8V11c0-.5.3-1 .8-1.4A4.5 4.5 0 0 0 8 1.5z"/></svg><span class="lbl">Ideen</span></button>
+  <button class="btn" id="idea-btn" type="button" title="Änderungswünsche &amp; Ideen fürs Projektboard" aria-label="Änderungswünsche und Ideen" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.2 12.5h3.6M6.7 14.5h2.6M8 1.5a4.5 4.5 0 0 0-2.7 8.1c.5.4.8.9.8 1.4v.5h3.8V11c0-.5.3-1 .8-1.4A4.5 4.5 0 0 0 8 1.5z"/></svg><span class="lbl">Ideen</span><span class="ibadge" id="idea-badge" hidden></span></button>
   <button class="btn" id="print-btn" type="button" title="Übersicht aller Kunden, Jobs, Notizen und der Wochenplanung als PDF" aria-label="PDF-Übersicht"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 6V2.5h7V6M4.5 11.5h-2v-5h11v5h-2"/><rect x="4.5" y="9.5" width="7" height="4.5" rx=".5"/></svg><span class="lbl">PDF-Übersicht</span></button>
   <button class="btn" id="team-btn" type="button" hidden>Team</button>
   <button class="btn ghost" id="logout-btn" type="button">Abmelden</button>
@@ -809,10 +820,10 @@ const S = {
   showDone: !!prefs.showDone, density: prefs.density || 'm', weekend: !!prefs.weekend,
   notesOpen: prefs.notesOpen !== false, jobNotes: new Map(Object.entries(prefs.jobNotes || {}).filter(([, v]) => typeof v === 'boolean')),
   expanded: new Set(), dragging: false, pending: false, sortables: [], boardSortable: null,
-  ideas: new Map(), ideaComments: new Map(), ideasErr: null, ideasLoaded: false, ideasSig: '', ideaSort: prefs.ideaSort === 'old' ? 'old' : 'new', ideaDrafts: new Map(), ideaEdit: null
+  ideas: new Map(), ideaComments: new Map(), ideasErr: null, ideasLoaded: false, ideasSig: '', ideaSort: prefs.ideaSort === 'old' ? 'old' : 'new', ideaFilter: ['open', 'done'].includes(prefs.ideaFilter) ? prefs.ideaFilter : 'all', ideaDrafts: new Map(), ideaEdit: null
 };
 function savePrefs() {
-  try { localStorage.setItem('pb-prefs-v1', JSON.stringify({ person: S.person, showDone: S.showDone, density: S.density, weekend: S.weekend, notesOpen: S.notesOpen, jobNotes: Object.fromEntries(S.jobNotes), ideaSort: S.ideaSort })); } catch (e) { /* egal */ }
+  try { localStorage.setItem('pb-prefs-v1', JSON.stringify({ person: S.person, showDone: S.showDone, density: S.density, weekend: S.weekend, notesOpen: S.notesOpen, jobNotes: Object.fromEntries(S.jobNotes), ideaSort: S.ideaSort, ideaFilter: S.ideaFilter })); } catch (e) { /* egal */ }
 }
 
 /* ---------- Abgeleitete Daten ---------- */
@@ -2206,10 +2217,24 @@ async function deleteComment(id) {
   const ok = await write('ideaComments/' + id, () => icDoc(id).delete(), 'Kommentar gelöscht');
   if (!ok) { S.ideaComments.set(id, c); queueRender(); }
 }
+function updateIdeaBadge() {
+  const b = $('#idea-badge'); if (!b) return;
+  const n = [...S.ideas.values()].filter(x => !x.done).length;
+  b.hidden = !n; b.textContent = n > 99 ? '99+' : String(n);
+  $('#idea-btn').setAttribute('aria-label', n ? `Änderungswünsche und Ideen, ${n} offen` : 'Änderungswünsche und Ideen');
+}
+async function setIdeaDone(id, done) {
+  const x = S.ideas.get(id); if (!x || !!x.done === done) return;
+  const patch = done ? { done: true, doneBy: S.me, doneAt: Date.now() } : { done: false, doneBy: null, doneAt: null };
+  S.ideas.set(id, { ...x, ...patch }); updateIdeaBadge(); queueRender();
+  const ok = await write('ideas/' + id, () => iDoc(id).update(patch), done ? 'Als erledigt markiert' : 'Wieder offen');
+  if (!ok) { S.ideas.set(id, x); updateIdeaBadge(); queueRender(); }
+}
 function onIdeaClick(e) {
   const b = e.target.closest('button[data-ia]'); if (!b) return;
   const id = b.dataset.id, a = b.dataset.ia;
   if (a === 'sort') { S.ideaSort = b.dataset.v === 'old' ? 'old' : 'new'; savePrefs(); queueRender(); }
+  else if (a === 'filter') { S.ideaFilter = ['open', 'done'].includes(b.dataset.v) ? b.dataset.v : 'all'; savePrefs(); queueRender(); }
   else if (a === 'edit') { S.ideaEdit = id; S.ideaDrafts.set('e:' + id, (S.ideas.get(id) || {}).text || ''); S.ideaRefocus = 'e:' + id; queueRender(); }
   else if (a === 'edit-cancel') { S.ideaEdit = null; S.ideaDrafts.delete('e:' + id); queueRender(); }
   else if (a === 'edit-save') saveIdeaEdit(id);
@@ -2221,11 +2246,13 @@ function renderIdeas() {
   const list = $('#idea-list'); if (!list) return;
   const asc = [...S.ideas.values()].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0) || String(a.id).localeCompare(String(b.id)));
   const no = new Map(asc.map((x, i) => [x.id, i + 1]));
-  const ideas = S.ideaSort === 'old' ? asc : asc.slice().reverse();
+  const nDone = asc.filter(x => x.done).length, nOpen = asc.length - nDone;
+  const shown = asc.filter(x => S.ideaFilter === 'all' || (S.ideaFilter === 'done' ? x.done : !x.done));
+  const ideas = S.ideaSort === 'old' ? shown : shown.slice().reverse();
   const byIdea = new Map();
   for (const c of S.ideaComments.values()) { if (!byIdea.has(c.ideaId)) byIdea.set(c.ideaId, []); byIdea.get(c.ideaId).push(c); }
   for (const arr of byIdea.values()) arr.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-  const sig = JSON.stringify([S.ideaSort, S.ideasErr, S.ideasLoaded, S.ideaEdit, S.me, S.isAdmin, ideas.map(x => [x.id, x.text, x.editedAt, x.author]),
+  const sig = JSON.stringify([S.ideaSort, S.ideaFilter, asc.length, S.ideasErr, S.ideasLoaded, S.ideaEdit, S.me, S.isAdmin, ideas.map(x => [x.id, x.text, x.editedAt, x.author, !!x.done, x.doneBy, x.doneAt]),
     [...byIdea.entries()].map(([k, v]) => [k, v.map(c => [c.id, c.text, c.author])]), Object.entries(S.prof).map(([k, v]) => [k, v && v.name, v && v.color, v && v.avatarUrl])]);
   if (sig === S.ideasSig && list.childElementCount && !S.ideaRefocus) return;
   S.ideasSig = sig;
@@ -2233,19 +2260,23 @@ function renderIdeas() {
   let refocus = S.ideaRefocus ? { key: S.ideaRefocus } : null; S.ideaRefocus = null;
   if (!refocus && ae && list.contains(ae) && ae.dataset && ae.dataset.ideaInput) refocus = { key: ae.dataset.ideaInput, s: ae.selectionStart, e: ae.selectionEnd };
   const sortBtn = (v, label) => h('button', { type: 'button', 'data-ia': 'sort', 'data-v': v, 'aria-pressed': String(S.ideaSort === v) }, label);
-  const head = h('div', { class: 'idea-head' }, h('h3', { text: `Alle Änderungswünsche (${ideas.length})` }),
+  const filtBtn = (v, label) => h('button', { type: 'button', 'data-ia': 'filter', 'data-v': v, 'aria-pressed': String(S.ideaFilter === v) }, label);
+  const head = h('div', { class: 'idea-head' }, h('h3', { text: `Änderungswünsche (${nOpen} offen · ${nDone} erledigt)` }),
+    h('div', { class: 'seg', role: 'group', 'aria-label': 'Filter' }, filtBtn('all', 'Alle'), filtBtn('open', 'Offen'), filtBtn('done', 'Erledigt')),
     h('div', { class: 'seg', role: 'group', 'aria-label': 'Reihenfolge' }, sortBtn('new', 'Neueste zuerst'), sortBtn('old', 'Älteste zuerst')));
   const kids = [head];
   if (S.ideasErr) kids.push(h('p', { class: 'hint', style: 'margin:0', text: S.ideasErr === 'revoked' ? 'Die Änderungswünsche können gerade nicht geladen werden (fehlende Berechtigung).' : 'Die Änderungswünsche können gerade nicht geladen werden. Seite neu laden.' }));
   else if (!S.ideasLoaded) kids.push(h('p', { class: 'hint', style: 'margin:0', text: 'Lade …' }));
-  else if (!ideas.length) kids.push(h('div', { class: 'empty' }, h('h2', { text: 'Noch keine Wünsche' }), h('p', { text: 'Trag links den ersten Änderungswunsch ein.' })));
+  else if (!asc.length) kids.push(h('div', { class: 'empty' }, h('h2', { text: 'Noch keine Wünsche' }), h('p', { text: 'Trag links den ersten Änderungswunsch ein.' })));
+  else if (!ideas.length) kids.push(h('div', { class: 'empty' }, h('h2', { text: S.ideaFilter === 'done' ? 'Noch nichts erledigt' : 'Alles erledigt' }), h('p', { text: S.ideaFilter === 'done' ? 'Abgehakte Wünsche erscheinen hier.' : 'Es gibt keine offenen Wünsche.' })));
   for (const x of ideas) {
     const cmts = byIdea.get(x.id) || [];
     const acts = mayEdit(x) && S.ideaEdit !== x.id ? h('div', { class: 'idea-acts' },
       h('button', { type: 'button', 'data-ia': 'edit', 'data-id': x.id, title: 'Bearbeiten', 'aria-label': 'Bearbeiten' }, svg(ICON.edit)),
       h('button', { type: 'button', 'data-ia': 'del', 'data-id': x.id, title: 'Löschen', 'aria-label': 'Löschen' }, svg(ICON.trash))) : null;
     const meta = h('div', { class: 'idea-meta' }, avatar(x.author, 'sm'), h('b', { text: nameOf(x.author) }),
-      h('span', { text: fmtStamp(x.createdAt) + (x.editedAt ? ' · bearbeitet' : '') }), h('span', { class: 'idea-no', text: '#' + no.get(x.id) }), acts);
+      h('span', { text: fmtStamp(x.createdAt) + (x.editedAt ? ' · bearbeitet' : '') }), h('span', { class: 'idea-no', text: '#' + no.get(x.id) }),
+      h('label', { class: 'idea-done', title: x.done ? 'Wieder als offen markieren' : 'Als erledigt abhaken', style: 'margin-left:auto' }, h('input', { type: 'checkbox', 'data-done': x.id, checked: !!x.done }), 'erledigt'), acts);
     let body;
     if (S.ideaEdit === x.id) {
       const k = 'e:' + x.id;
@@ -2253,7 +2284,8 @@ function renderIdeas() {
         h('textarea', { 'data-idea-input': k, maxlength: String(IDEA_MAX), rows: '6', 'aria-label': 'Änderungswunsch bearbeiten' }),
         h('div', { class: 'row' }, h('button', { class: 'btn', type: 'button', 'data-ia': 'edit-cancel', 'data-id': x.id }, 'Abbrechen'), h('button', { class: 'btn primary', type: 'button', 'data-ia': 'edit-save', 'data-id': x.id }, 'Speichern')));
       body.querySelector('textarea').value = S.ideaDrafts.has(k) ? S.ideaDrafts.get(k) : x.text;
-    } else body = h('div', { class: 'idea-text', text: x.text });
+    } else body = h('div', {}, h('div', { class: 'idea-text', text: x.text }),
+      x.done ? h('div', { class: 'idea-donebar' }, svg('<path d="m3 8.5 3 3 7-7"/>'), `Erledigt${x.doneBy ? ' von ' + nameOf(x.doneBy) : ''}${x.doneAt ? ' · ' + fmtStamp(x.doneAt) : ''}`) : null);
     const ck = 'c:' + x.id;
     const cmtBox = h('div', { class: 'idea-cmts' },
       cmts.length ? h('div', { class: 'idea-cmts-h', text: `${cmts.length} Kommentar${cmts.length === 1 ? '' : 'e'}` }) : null,
@@ -2264,7 +2296,7 @@ function renderIdeas() {
         h('textarea', { 'data-idea-input': ck, maxlength: String(CMT_MAX), rows: '1', placeholder: 'Kommentieren …', title: 'Enter = senden, Umschalt+Enter = neue Zeile', 'aria-label': 'Kommentar schreiben' }),
         h('button', { class: 'btn', type: 'button', 'data-ia': 'cmt', 'data-id': x.id }, 'Senden')));
     const cta = cmtBox.querySelector('textarea[data-idea-input]'); if (S.ideaDrafts.has(ck)) cta.value = S.ideaDrafts.get(ck);
-    kids.push(h('article', { class: 'idea', '--c': (S.prof[x.author] && S.prof[x.author].color) || 'var(--accent)' }, h('div', { class: 'idea-main' }, meta, body), cmtBox));
+    kids.push(h('article', { class: 'idea' + (x.done ? ' done' : ''), '--c': (S.prof[x.author] && S.prof[x.author].color) || 'var(--accent)' }, h('div', { class: 'idea-main' }, meta, body), cmtBox));
   }
   list.replaceChildren(...kids);
   if (refocus) {
@@ -2314,6 +2346,7 @@ function bindStatic() {
   $('#idea-form').addEventListener('submit', submitIdea);
   $('#idea-text').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submitIdea(e); } });
   $('#idea-list').addEventListener('click', onIdeaClick);
+  $('#idea-list').addEventListener('change', e => { const id = e.target.dataset && e.target.dataset.done; if (id) setIdeaDone(id, e.target.checked); });
   $('#idea-list').addEventListener('input', e => { const k = e.target.dataset && e.target.dataset.ideaInput; if (k) S.ideaDrafts.set(k, e.target.value); });
   $('#idea-list').addEventListener('keydown', e => { const k = e.target.dataset && e.target.dataset.ideaInput; if (!k) return; if (e.key === 'Escape' && k.startsWith('e:')) { S.ideaEdit = null; S.ideaDrafts.delete(k); queueRender(); return; } if (e.key !== 'Enter' || e.isComposing) return; if (k.startsWith('c:') && !e.shiftKey) { e.preventDefault(); sendComment(k.slice(2)); } else if (k.startsWith('e:') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveIdeaEdit(k.slice(2)); } });
   $('#weekgrid').addEventListener('pointerdown', weekPointerDown);
@@ -2633,7 +2666,7 @@ function subscribe() {
   for (const [name, map] of [['ideas', S.ideas], ['ideaComments', S.ideaComments]]) S.db.collection(name).onSnapshot(snap => {
     map.clear();
     for (const d of snap.docs) { const v = d.data(); if (v) map.set(d.id, { ...v, id: d.id }); }
-    S.ideasErr = null; S.ideasLoaded = true; if (S.view === 'ideas') queueRender();
+    S.ideasErr = null; S.ideasLoaded = true; updateIdeaBadge(); if (S.view === 'ideas') queueRender();
   }, err => { console.warn(name, err); S.ideasErr = (err && err.code) || 'error'; if (S.view === 'ideas') queueRender(); });
   S.db.collection('team').onSnapshot(snap => {
     S.teamData = new Map(snap.docs.map(d => [d.id, d.data() || {}]));
