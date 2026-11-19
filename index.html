@@ -72,8 +72,8 @@ h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance;margin:0;letter-sp
 .sync[data-state="off"]::before,.sync[data-state="error"]::before{background:var(--bad)}
 .me{display:flex;align-items:center;gap:8px;font-size:13.5px}
 .top-right{display:flex;align-items:center;gap:12px 16px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
-@media (max-width:1280px){.me>span:not(.av){display:none}}
-@media (max-width:1140px){#print-btn .lbl,#idea-btn .lbl{display:none}#print-btn,#idea-btn{padding-inline:10px}}
+@media (max-width:1599px){.me>span:not(.av){display:none}}
+@media (max-width:1239px){#print-btn .lbl,#idea-btn .lbl{display:none}#print-btn,#idea-btn{padding-inline:10px}}
 #idea-btn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
 
 .banner{margin:12px max(16px,3vw) 0;padding:10px 14px;border-radius:var(--r);background:var(--accent-soft);border:1px solid var(--line);font-size:14px}
@@ -437,7 +437,7 @@ a.btn{text-decoration:none;color:inherit}
 .cmt-add .btn{min-height:36px}
 #idea-btn{position:relative}
 .ibadge{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-size:11px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
-@media (max-width:1140px){.ibadge{position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;font-size:10px;padding:0 4px;border:2px solid var(--surface)}}
+@media (max-width:1239px){.ibadge{position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;font-size:10px;padding:0 4px;border:2px solid var(--surface)}}
 .idea-done+.idea-acts{margin-left:0}
 .idea-done{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none;padding:2px 6px;border-radius:6px}
 .idea-done:hover{background:var(--surface-2);color:var(--ink)}
@@ -579,7 +579,8 @@ a.btn{text-decoration:none;color:inherit}
 <header class="top">
   <div class="brand"><h1>Projektboard</h1><span>Concept Art Hannover</span></div>
   <nav class="tabs" role="tablist" aria-label="Ansicht">
-    <button class="tab" role="tab" data-view="board" id="tab-board">Kunden</button>
+    <button class="tab" role="tab" data-view="board" id="tab-board">Projekte</button>
+    <button class="tab" role="tab" data-view="boards" id="tab-boards" title="Deine persönlichen Kacheln – nur für dich sichtbar">Boards</button>
     <button class="tab" role="tab" data-view="month" id="tab-month">Monat</button>
     <button class="tab" role="tab" data-view="week" id="tab-week">Woche</button>
     <button class="tab" role="tab" data-view="day" id="tab-day">Tag</button>
@@ -607,7 +608,7 @@ a.btn{text-decoration:none;color:inherit}
       <div class="seg" id="density" role="group" aria-label="Kachelgröße">
         <button data-d="s" type="button">Kompakt</button><button data-d="m" type="button">Normal</button><button data-d="l" type="button">Groß</button>
       </div>
-      <button class="btn primary write-only" id="new-project" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>Neuer Kunde</button>
+      <button class="btn primary write-only" id="new-project" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg><span>Neuer Kunde</span></button>
     </div>
     <div class="board-bar">
       <div class="summary" id="summary"></div>
@@ -689,7 +690,7 @@ a.btn{text-decoration:none;color:inherit}
   <!-- E-MAIL-VERLAUF JE JOB -->
   <section class="view" id="view-mail" aria-label="E-Mail-Verlauf" hidden>
     <div class="toolbar">
-      <button class="btn" id="mail-back" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>Kunden</button>
+      <button class="btn" id="mail-back" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg><span>Projekte</span></button>
       <h2 class="mailpage-title" id="mail-title"></h2>
     </div>
     <div class="mailpage">
@@ -701,7 +702,7 @@ a.btn{text-decoration:none;color:inherit}
   <!-- ÄNDERUNGSWÜNSCHE & IDEEN -->
   <section class="view" id="view-ideas" aria-label="Änderungswünsche und Ideen" hidden>
     <div class="toolbar">
-      <button class="btn" id="ideas-back" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>Kunden</button>
+      <button class="btn" id="ideas-back" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg><span>Projekte</span></button>
       <h2 class="mailpage-title">Änderungswünsche &amp; Ideen</h2>
     </div>
     <div class="ideaspage">
@@ -824,12 +825,28 @@ const DAY_CAP = 8;
 const CORE_START = 9, CORE_END = 18; // Kernarbeitszeit 09:00–18:00
 
 /* ---------- Zustand ---------- */
+/* Eine Map-Sicht über geteilte (Projekte) und persönliche Daten (Boards); persönlich = ID in S.pIds */
+class UMap {
+  constructor(isP) { this.a = new Map(); this.b = new Map(); this.isP = isP; }
+  get(k) { return this.b.has(k) ? this.b.get(k) : this.a.get(k); }
+  has(k) { return this.a.has(k) || this.b.has(k); }
+  set(k, v) { (this.isP(k) ? this.b : this.a).set(k, v); return this; }
+  delete(k) { const x = this.a.delete(k); const y = this.b.delete(k); return x || y; }
+  clear() { this.a.clear(); this.b.clear(); }
+  get size() { return this.a.size + this.b.size; }
+  *entries() { yield* this.a.entries(); yield* this.b.entries(); }
+  *keys() { yield* this.a.keys(); yield* this.b.keys(); }
+  *values() { yield* this.a.values(); yield* this.b.values(); }
+  forEach(fn) { for (const [k, v] of this.entries()) fn(v, k, this); }
+  [Symbol.iterator]() { return this.entries(); }
+}
 let prefs = {};
 try { prefs = JSON.parse(localStorage.getItem('pb-prefs-v1') || '{}') || {}; } catch (e) { prefs = {}; }
 const S = {
   db: null, user: null, me: null, prof: {}, teamData: new Map(), allowed: [], isAdmin: false, teamDialogOpen: false,
   canWrite: true, writeKnown: false,
-  projects: new Map(), clients: new Map(), notes: new Map(), slots: new Map(), team: new Set(),
+  projects: null, clients: null, notes: null, slots: new Map(), team: new Set(),
+  pIds: new Set(), pLoaded: false, pErr: null,
   threads: new Map(), threadsErr: null, threadOpen: new Map(), threadAll: new Set(), mmFull: new Set(), mailSig: '', mailSigP: '', mailJob: null,
   loaded: { projects: false, clients: false, notes: false, slots: false }, confirmed: null, openDone: new Set(),
   view: 'board', weekStart: monday(new Date()), day: today(), month: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -849,13 +866,17 @@ const NO_CLIENT = '_ohne';
 const byOrder = (a, b) => (a.order ?? 0) - (b.order ?? 0) || String(a.title || a.name || '').localeCompare(String(b.title || b.name || ''), 'de');
 const notesOf = pid => [...S.notes.values()].filter(n => n.projectId === pid);
 const sortNotes = list => list.slice().sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0) || (a.createdAt || 0) - (b.createdAt || 0));
+{ const isP = k => S.pIds.has(k); S.clients = new UMap(isP); S.projects = new UMap(isP); S.notes = new UMap(isP); }
+const inBoards = () => S.view === 'boards';
+const isPers = x => !!(x && x._p);
+const markP = (id, rec) => { S.pIds.add(id); rec._p = true; return rec; };
 const proj = id => S.projects.get(id);
 const client = id => S.clients.get(id);
 const clientOf = p => (p && p.clientId && S.clients.get(p.clientId)) || null;
 const clientName = p => (clientOf(p) && clientOf(p).name) || (p && p.client) || 'Ohne Kunde';
 const jobColor = p => clientOf(p) ? (clientOf(p).color || COLORS[0]) : fixColor((p && p.color) || COLORS[0]);
 const projColor = id => proj(id) ? jobColor(proj(id)) : 'var(--muted)';
-const jobsOf = cid => [...S.projects.values()].filter(p => cid === NO_CLIENT ? !clientOf(p) : p.clientId === cid).sort(byOrder);
+const jobsOf = cid => [...S.projects.values()].filter(p => cid === NO_CLIENT ? !clientOf(p) && !p._p : p.clientId === cid).sort(byOrder);
 function clientsSorted() {
   const list = [...S.clients.values()].sort(byOrder);
   if ([...S.projects.values()].some(p => !clientOf(p))) list.push({ id: NO_CLIENT, name: 'Ohne Kunde', color: '#55636b', virtual: true });
@@ -957,10 +978,15 @@ async function write(key, fn, okMsg) {
     return false;
   }
 }
-const pDoc = id => S.db.collection('projects').doc(id);
-const nDoc = id => S.db.collection('notes').doc(id);
+const scopedDoc = (shared, mine) => id => {
+  if (!S.pIds.has(id)) return S.db.collection(shared).doc(id);
+  const r = S.db.collection(mine).doc(id);
+  return { ...r, set: d => r.set({ ...d, owner: S.me }) };
+};
+const pDoc = scopedDoc('projects', 'boardJobs');
+const nDoc = scopedDoc('notes', 'boardNotes');
 const sDoc = id => S.db.collection('slots').doc(id);
-const cDoc = id => S.db.collection('clients').doc(id);
+const cDoc = scopedDoc('clients', 'boards');
 const tDoc = id => S.db.collection('threads').doc(id);
 
 function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
@@ -970,7 +996,8 @@ async function addNote(pid, text) {
   if (!text || !proj(pid)) return;
   const id = newId();
   const body = { projectId: pid, text, done: false, author: S.me || null, createdAt: Date.now() };
-  S.notes.set(id, { ...body, id }); queueRender();
+  const rec = { ...body, id }; if (isPers(proj(pid))) markP(id, rec);
+  S.notes.set(id, rec); queueRender();
   const ok = await write('notes/' + id, () => nDoc(id).set(body));
   if (!ok) { S.notes.delete(id); queueRender(); }
 }
@@ -988,13 +1015,15 @@ async function deleteNote(id) {
 async function saveClient(id, data) {
   if (id) {
     const c = client(id); S.clients.set(id, { ...c, ...data }); queueRender();
-    return write('clients/' + id, () => cDoc(id).update(data), 'Kunde gespeichert');
+    return write('clients/' + id, () => cDoc(id).update(data), isPers(c) ? 'Board gespeichert' : 'Kunde gespeichert');
   }
   const nid = newId();
-  const minOrder = Math.min(0, ...[...S.clients.values()].map(c => c.order ?? 0));
+  const pers = inBoards();
+  const minOrder = Math.min(0, ...[...S.clients.values()].filter(c => isPers(c) === pers).map(c => c.order ?? 0));
   const body = { name: '', color: COLORS[S.clients.size % COLORS.length], size: 'm', ...data, order: minOrder - 1000, createdBy: S.me || null, createdAt: Date.now() };
-  S.clients.set(nid, { ...body, id: nid }); queueRender();
-  const ok = await write('clients/' + nid, () => cDoc(nid).set(body), 'Kunde angelegt');
+  const rec = { ...body, id: nid }; if (pers) markP(nid, rec);
+  S.clients.set(nid, rec); queueRender();
+  const ok = await write('clients/' + nid, () => cDoc(nid).set(body), pers ? 'Board angelegt' : 'Kunde angelegt');
   if (!ok) { S.clients.delete(nid); queueRender(); return null; }
   return nid;
 }
@@ -1016,7 +1045,8 @@ async function saveProject(id, data) {
   const sib = [...S.projects.values()].filter(p => p.clientId === data.clientId);
   const maxOrder = Math.max(0, ...sib.map(p => p.order ?? 0));
   const body = { title: '', clientId: '', status: 'offen', due: '', members: S.me ? [S.me] : [], ...data, order: maxOrder + 1000, createdBy: S.me || null, createdAt: Date.now() };
-  S.projects.set(nid, { ...body, id: nid }); queueRender();
+  const rec = { ...body, id: nid }; if (isPers(client(body.clientId))) markP(nid, rec);
+  S.projects.set(nid, rec); queueRender();
   const ok = await write('projects/' + nid, () => pDoc(nid).set(body), 'Job angelegt');
   if (!ok) { S.projects.delete(nid); queueRender(); }
   return ok;
@@ -1100,11 +1130,11 @@ function queueRender() {
 async function render() {
   await refreshProfiles();
   if (S.dragging) { S.pending = true; return; }
-  for (const v of $$('.view')) v.hidden = v.id !== 'view-' + S.view;
+  for (const v of $$('.view')) v.hidden = v.id !== 'view-' + (S.view === 'boards' ? 'board' : S.view);
   for (const t of $$('.tab')) t.setAttribute('aria-selected', String(t.dataset.view === S.view));
   renderMe();
   renderPersonFilters();
-  if (S.view === 'board') renderBoard();
+  if (S.view === 'board' || S.view === 'boards') renderBoard();
   else if (S.view === 'week') renderWeek();
   else if (S.view === 'month') renderMonth();
   else if (S.view === 'mail') renderMailView();
@@ -1142,7 +1172,9 @@ function jobVisible(p, clientMatch, cid) {
 function visibleClients() {
   const q = S.q.trim().toLowerCase();
   const out = [];
+  const pers = inBoards();
   for (const c of clientsSorted()) {
+    if (isPers(c) !== pers) continue;
     const clientMatch = !!q && String(c.name || '').toLowerCase().includes(q);
     const jobs = jobsOf(c.id).filter(p => jobVisible(p, clientMatch, c.id));
     if (jobs.length || clientMatch || !filtersActive()) out.push({ c, jobs });
@@ -1150,15 +1182,16 @@ function visibleClients() {
   return out;
 }
 function renderSummary() {
-  const act = activeProjects();
-  const openNotes = [...S.notes.values()].filter(n => !n.done && proj(n.projectId) && proj(n.projectId).status !== 'erledigt').length;
+  const pers = inBoards();
+  const act = activeProjects().filter(p => isPers(p) === pers);
+  const openNotes = [...S.notes.values()].filter(n => !n.done && proj(n.projectId) && isPers(proj(n.projectId)) === pers && proj(n.projectId).status !== 'erledigt').length;
   let wk = 0; const ws = monday(new Date()); const from = ymd(ws), to = ymd(addDays(ws, 6));
-  for (const s of S.slots.values()) if (s.date >= from && s.date <= to && proj(s.projectId) && (S.person === 'all' || s.userId === S.person)) wk += Number(s.hours) || 0;
+  for (const s of S.slots.values()) if (s.date >= from && s.date <= to && proj(s.projectId) && isPers(proj(s.projectId)) === pers && (S.person === 'all' || s.userId === S.person)) wk += Number(s.hours) || 0;
   const overdue = act.filter(p => p.due && parseYmd(p.due) < today()).length;
   const activeClients = new Set(act.map(p => clientOf(p) ? p.clientId : NO_CLIENT)).size;
   const stat = (n, l) => h('span', { class: 'stat' }, h('b', { text: n }), l);
   $('#summary').replaceChildren(
-    stat(activeClients, activeClients === 1 ? 'Kunde aktiv' : 'Kunden aktiv'),
+    stat(activeClients, pers ? (activeClients === 1 ? 'Board aktiv' : 'Boards aktiv') : (activeClients === 1 ? 'Kunde aktiv' : 'Kunden aktiv')),
     stat(act.length, act.length === 1 ? 'offener Job' : 'offene Jobs'),
     stat(act.filter(p => p.status === 'arbeit').length, 'in Arbeit'),
     stat(act.filter(p => p.status === 'wartet').length, 'warten auf Kunde'),
@@ -1166,8 +1199,9 @@ function renderSummary() {
     stat(fmtH(wk), S.person === 'all' ? 'diese Woche geplant' : `diese Woche für ${nameOf(S.person)}`),
     overdue ? h('span', { class: 'stat', style: 'color:var(--bad)' }, h('b', { text: overdue, style: 'color:var(--bad)' }), 'überfällig') : ''
   );
-  const counts = { all: [...S.projects.values()].filter(p => S.showDone || p.status !== 'erledigt').length };
-  for (const s of STATUS) counts[s.id] = [...S.projects.values()].filter(p => p.status === s.id).length;
+  const inScope = [...S.projects.values()].filter(p => isPers(p) === pers);
+  const counts = { all: inScope.filter(p => S.showDone || p.status !== 'erledigt').length };
+  for (const s of STATUS) counts[s.id] = inScope.filter(p => p.status === s.id).length;
   $('#status-filter').replaceChildren(
     ...[{ id: 'all', label: 'Alle' }, ...STATUS].map(s => h('button', { type: 'button', 'data-s': s.id, 'aria-pressed': String(S.status === s.id) }, `${s.id === 'wartet' ? 'Wartet' : s.label} `, h('span', { class: 'num', style: 'opacity:.7;font-size:12px', text: counts[s.id] })))
   );
@@ -1190,10 +1224,14 @@ function renderBoard() {
     if (at !== el) grid.insertBefore(el, at || null);
   });
   const empty = $('#board-empty');
-  const loading = !S.initDone || (S.db && !(S.loaded.projects && S.loaded.clients));
+  const pers = inBoards();
+  const loading = !S.initDone || (S.db && !(pers ? S.pLoaded || S.pErr : (S.loaded.projects && S.loaded.clients)));
+  $('#new-project span').textContent = pers ? 'Neues Board' : 'Neuer Kunde';
   if (!list.length) {
     empty.hidden = false;
-    if (loading) empty.replaceChildren(h('p', { text: 'Kunden werden geladen …' }));
+    if (pers && S.pErr) empty.replaceChildren(h('h2', { text: 'Boards nicht verfügbar' }), h('p', { text: 'Deine Boards können gerade nicht geladen werden. Bitte die Seite neu laden.' }));
+    else if (loading) empty.replaceChildren(h('p', { text: pers ? 'Boards werden geladen …' : 'Kunden werden geladen …' }));
+    else if (pers && ![...S.clients.values()].some(isPers)) empty.replaceChildren(h('h2', { text: 'Noch keine Boards' }), h('p', { text: 'Boards sind deine persönlichen Kacheln – nur du siehst sie. Sie funktionieren wie die Kacheln unter „Projekte“: Jobs, Notizen, Planung.' }), S.canWrite ? h('button', { class: 'btn primary', type: 'button', onclick: () => openClientDialog() }, 'Neues Board') : null);
     else if (S.clients.size || S.projects.size) empty.replaceChildren(h('h2', { text: 'Keine Treffer' }), h('p', { text: 'Kein Kunde und kein Job passt zu Suche oder Filter.' }), h('button', { class: 'btn', type: 'button', onclick: resetFilters }, 'Filter zurücksetzen'));
     else empty.replaceChildren(h('h2', { text: 'Noch keine Kunden' }), h('p', { text: 'Jede Kachel ist ein Kunde. Leg einen an und trag darin seine Jobs ein.' }), S.canWrite ? h('button', { class: 'btn primary', type: 'button', onclick: () => openClientDialog() }, 'Neuer Kunde') : null);
   } else empty.hidden = true;
@@ -1201,7 +1239,7 @@ function renderBoard() {
   const anyTileOpen = list.some(x => tileIsOpen(x.c.id));
   tilesBtn.hidden = !list.length;
   tilesBtn.setAttribute('aria-expanded', String(anyTileOpen));
-  $('span', tilesBtn).textContent = anyTileOpen ? 'Alle Kunden einklappen' : 'Alle Kunden ausklappen';
+  $('span', tilesBtn).textContent = pers ? (anyTileOpen ? 'Alle Boards einklappen' : 'Alle Boards ausklappen') : (anyTileOpen ? 'Alle Kunden einklappen' : 'Alle Kunden ausklappen');
   tilesBtn.title = anyTileOpen ? 'Kacheln auf den Kundennamen verkleinern – Jobs ausblenden' : 'Alle Kacheln mit ihren Jobs zeigen';
   const allBtn = $('#notes-all');
   const anyOpen = list.some(x => tileIsOpen(x.c.id) && x.jobs.some(p => jobNotesOpen(p.id)));
@@ -1319,6 +1357,7 @@ function updateTile(el, c, jobs) {
   el.classList.toggle('is-virtual', !!c.virtual);
   $('h3', el).textContent = c.name || 'Ohne Namen';
   const edit = $('[data-act="edit-client"]', el); if (edit) edit.hidden = !!c.virtual;
+  if (edit) { const t = isPers(c) ? 'Board bearbeiten' : 'Kunde bearbeiten'; edit.title = t; edit.setAttribute('aria-label', t); }
   $('.job-add', el).hidden = !!c.virtual;
 
   const all = jobsOf(c.id);
@@ -1473,8 +1512,9 @@ function buildPrintView() {
   const kw = isoWeek(ws);
   const root = $('#print-view');
   const tag = (txt, cls) => h('span', { class: 'pv-tag' + (cls ? ' ' + cls : ''), text: txt });
-  // Teil 1: Kunden, Jobs, Notizen
-  const clients = clientsSorted().slice().sort((a, b) => abc(a.name, b.name)).map(c => {
+  // Teil 1: Kunden, Jobs, Notizen (in „Boards“: die eigenen Boards)
+  const pvPers = inBoards();
+  const clients = clientsSorted().filter(c => isPers(c) === pvPers).slice().sort((a, b) => abc(a.name, b.name)).map(c => {
     const all = jobsOf(c.id);
     const open = all.filter(p => p.status !== 'erledigt').sort((a, b) => abc(a.title, b.title));
     const done = all.length - open.length;
@@ -1526,7 +1566,7 @@ function buildPrintView() {
     h('header', { class: 'pv-head' },
       h('h1', { text: 'Projektübersicht' }),
       h('div', { class: 'pv-meta', text: `Concept Art Hannover · Stand ${now.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}, ${pad(now.getHours())}:${pad(now.getMinutes())} Uhr` })),
-    h('h2', { text: 'Kunden, Jobs und Notizen' }),
+    h('h2', { text: pvPers ? 'Meine Boards, Jobs und Notizen' : 'Kunden, Jobs und Notizen' }),
     ...(clients.length ? clients : [h('p', { class: 'pv-empty', text: 'Noch keine Kunden angelegt.' })]),
     h('section', { class: 'pv-week' },
       h('h2', {}, `Wochenplanung KW ${kw} · ${fmtD(ws)}–${fmtD(we)}${we.getFullYear()}`, h('span', { class: 'pv-sum', text: `${fmtH(weekSum)} geplant${S.me ? ' · ' + nameOf(S.me) : ''}` })),
@@ -1979,6 +2019,7 @@ function renderMailView() {
     col.replaceChildren(h('p', { class: 'hint', text: S.loaded.projects ? 'Dieser Job wurde nicht gefunden.' : 'Wird geladen …' }));
     return;
   }
+  $('#mail-back span').textContent = isPers(p) ? 'Boards' : 'Projekte';
   const cid = clientOf(p) ? p.clientId : NO_CLIENT;
   const c = clientsSorted().find(x => x.id === cid) || { id: cid, name: clientName(p), color: COLORS[0], virtual: true };
   $('#mail-title').replaceChildren(h('span', { text: 'E-Mail-Verlauf · ' }), p.title || 'Ohne Titel', h('small', { text: ' · ' + (c.name || '') }));
@@ -2018,6 +2059,8 @@ function closeModal() { if (modalClose) modalClose(); }
 function openClientDialog(id) {
   const c = id ? client(id) : null;
   if (id && !c) return;
+  const pers = c ? isPers(c) : inBoards();
+  const W = pers ? 'Board' : 'Kunde';
   const st = { color: ((c && c.color) || COLORS[S.clients.size % COLORS.length]).toLowerCase(), size: (c && c.size) || 'm' };
   const fName = h('input', { type: 'text', id: 'c-name', required: true, maxlength: '120', value: c ? c.name : '', placeholder: 'z. B. PWP Holding' });
   const sw = h('div', { class: 'swatches', role: 'group', 'aria-label': 'Vorgeschlagene Farben' });
@@ -2035,7 +2078,7 @@ function openClientDialog(id) {
     sw.replaceChildren(...COLORS.map(col => h('button', { type: 'button', class: 'swatch', '--c': col, 'aria-label': `Farbe ${col}`, 'aria-pressed': String(st.color === col), onclick: () => setColor(col) })));
     preview.style.setProperty('--c', st.color);
     preview.classList.toggle('on-light', darkTextOn(st.color));
-    $('.pv-name', preview).textContent = fName.value.trim() || 'Kundenname';
+    $('.pv-name', preview).textContent = fName.value.trim() || (pers ? 'Boardname' : 'Kundenname');
   };
   fPick.addEventListener('input', () => setColor(fPick.value, 'pick'));
   fHex.addEventListener('input', () => { let v = fHex.value.trim(); if (v && v[0] !== '#') v = '#' + v; if (isHex(v)) setColor(v, 'hex'); });
@@ -2046,7 +2089,7 @@ function openClientDialog(id) {
   const drawSize = () => sizeSeg.replaceChildren(...[['m', 'Normal'], ['l', 'Breit']].map(([v, l]) => h('button', { type: 'button', 'aria-pressed': String(st.size === v), onclick: () => { st.size = v; drawSize(); } }, l)));
   drawSize();
   const form = h('form', { class: 'form', onsubmit: e => { e.preventDefault(); save(); } },
-    h('label', { class: 'lbl', for: 'c-name' }, 'Kundenname', fName),
+    h('label', { class: 'lbl', for: 'c-name' }, pers ? 'Name des Boards' : 'Kundenname', fName),
     h('div', { class: 'lbl' }, 'Farbe der Kachel', sw,
       h('div', { class: 'custom-color' }, fPick, h('label', { for: 'c-color', text: 'Eigene Farbe:' }), fHex)),
     h('div', { class: 'lbl' }, 'Vorschau', preview),
@@ -2054,12 +2097,12 @@ function openClientDialog(id) {
     h('button', { type: 'submit', hidden: true }));
   async function save() {
     const name = clean(fName.value, 120).trim();
-    if (!name) { fName.focus(); toast('Bitte einen Kundennamen eingeben.', true); return; }
+    if (!name) { fName.focus(); toast(pers ? 'Bitte einen Namen eingeben.' : 'Bitte einen Kundennamen eingeben.', true); return; }
     closeModal();
     const res = await saveClient(id || null, { name, color: st.color, size: st.size });
     if (!id && res) setTimeout(() => { const inp = $(`.tile[data-id="${CSS.escape(res)}"] .job-add input`); if (inp) inp.focus(); }, 250);
   }
-  openModal(c ? 'Kunde bearbeiten' : 'Neuer Kunde', form, [
+  openModal(c ? W + ' bearbeiten' : (pers ? 'Neues Board' : 'Neuer Kunde'), form, [
     c ? h('button', { class: 'btn danger left', type: 'button', onclick: () => confirmDeleteClient(id) }, svg(ICON.trash), 'Löschen') : null,
     h('button', { class: 'btn', type: 'button', onclick: closeModal }, 'Abbrechen'),
     h('button', { class: 'btn primary', type: 'button', onclick: save }, c ? 'Speichern' : 'Anlegen')
@@ -2070,7 +2113,7 @@ function confirmDeleteClient(id) {
   const jobs = jobsOf(id);
   const nn = jobs.reduce((a, p) => a + notesOf(p.id).length, 0);
   const ns = [...S.slots.values()].filter(s => jobs.some(p => p.id === s.projectId)).length;
-  openModal(`„${c.name}“ löschen?`, h('p', { style: 'margin:0', text: `Der Kunde wird für alle gelöscht, zusammen mit ${jobs.length} Job${jobs.length === 1 ? '' : 's'}, ${nn} Notiz${nn === 1 ? '' : 'en'} und ${ns} Planung${ns === 1 ? '' : 'en'}. Das lässt sich nicht rückgängig machen.` }), [
+  openModal(`„${c.name}“ löschen?`, h('p', { style: 'margin:0', text: `${isPers(c) ? 'Das Board wird gelöscht' : 'Der Kunde wird für alle gelöscht'}, zusammen mit ${jobs.length} Job${jobs.length === 1 ? '' : 's'}, ${nn} Notiz${nn === 1 ? '' : 'en'} und ${ns} Planung${ns === 1 ? '' : 'en'}. Das lässt sich nicht rückgängig machen.` }), [
     h('button', { class: 'btn', type: 'button', onclick: closeModal }, 'Abbrechen'),
     h('button', { class: 'btn primary', type: 'button', style: 'background:var(--bad);border-color:var(--bad);color:#fff', onclick: () => { closeModal(); deleteClient(id); } }, 'Endgültig löschen')
   ]);
@@ -2078,8 +2121,9 @@ function confirmDeleteClient(id) {
 function openProjectDialog(id, opts = {}) {
   const p = id ? proj(id) : null;
   if (id && !p) return;
-  const clients = [...S.clients.values()].sort(byOrder);
-  if (!clients.length) { toast('Lege zuerst einen Kunden an.', true); return; }
+  const pers = p ? isPers(p) : (opts.clientId ? isPers(client(opts.clientId)) : inBoards());
+  const clients = [...S.clients.values()].filter(c => isPers(c) === pers).sort(byOrder);
+  if (!clients.length) { toast(pers ? 'Lege zuerst ein Board an.' : 'Lege zuerst einen Kunden an.', true); return; }
   const st = { members: [...((p && p.members) || (S.me ? [S.me] : []))] };
   const fTitle = h('input', { type: 'text', id: 'f-title', required: true, maxlength: '120', value: p ? p.title : '', placeholder: 'z. B. Website-Relaunch' });
   const fClient = h('select', { id: 'f-client' }, clients.map(c => h('option', { value: c.id, text: c.name })));
@@ -2105,7 +2149,7 @@ function openProjectDialog(id, opts = {}) {
 
   const form = h('form', { class: 'form', onsubmit: e => { e.preventDefault(); save(); } },
     h('label', { class: 'lbl', for: 'f-title' }, 'Job', fTitle),
-    h('div', { class: 'row2' }, h('label', { class: 'lbl', for: 'f-client' }, 'Kunde', fClient), h('label', { class: 'lbl', for: 'f-status' }, 'Status', fStatus)),
+    h('div', { class: 'row2' }, h('label', { class: 'lbl', for: 'f-client' }, pers ? 'Board' : 'Kunde', fClient), h('label', { class: 'lbl', for: 'f-status' }, 'Status', fStatus)),
     h('div', { class: 'row2' }, h('label', { class: 'lbl', for: 'f-due' }, 'Fällig am', fDue), h('div')),
     h('div', { class: 'lbl' }, 'Team', chips, h('div', { class: 'picker' }, fPick, pickList)),
     h('button', { type: 'submit', hidden: true })
@@ -2350,14 +2394,14 @@ function renderIdeas() {
 /* ---------- Ereignisse ---------- */
 function setView(v, push = true) {
   S.view = v;
-  if (push) { const tag = { board: 'kunden', month: 'monat', week: 'woche', day: 'tag' }[v]; if (tag) { try { if (location.hash !== '#' + tag) history.replaceState(null, '', '#' + tag); } catch (e) { location.hash = tag; } } }
+  if (push) { const tag = { board: 'projekte', boards: 'boards', month: 'monat', week: 'woche', day: 'tag' }[v]; if (tag) { try { if (location.hash !== '#' + tag) history.replaceState(null, '', '#' + tag); } catch (e) { location.hash = tag; } } }
   queueRender();
 }
 function applyHash() {
   const t = (location.hash || '').slice(1);
   if (t.startsWith('mail/')) { S.view = 'mail'; try { S.mailJob = decodeURIComponent(t.slice(5)); } catch (e) { S.mailJob = t.slice(5); } window.scrollTo(0, 0); return; }
   if (t === 'ideen') { if (S.view !== 'ideas') window.scrollTo(0, 0); S.view = 'ideas'; return; }
-  S.view = t === 'monat' ? 'month' : t === 'woche' ? 'week' : t === 'tag' ? 'day' : 'board';
+  S.view = t === 'monat' ? 'month' : t === 'woche' ? 'week' : t === 'tag' ? 'day' : t === 'boards' ? 'boards' : 'board';
 }
 function bindStatic() {
   for (const t of $$('.tab')) t.addEventListener('click', () => setView(t.dataset.view));
@@ -2383,7 +2427,7 @@ function bindStatic() {
     e.stopPropagation();
     S.mailSig = ''; S.mailSigP = ''; queueRender();
   });
-  $('#mail-back').addEventListener('click', () => setView('board'));
+  $('#mail-back').addEventListener('click', () => setView(isPers(proj(S.mailJob)) ? 'boards' : 'board'));
   $('#ideas-back').addEventListener('click', () => setView('board'));
   $('#idea-btn').addEventListener('click', () => { if (S.view === 'ideas') { setView('board'); return; } if (location.hash !== '#ideen') location.hash = 'ideen'; else { S.view = 'ideas'; queueRender(); } setTimeout(() => { const t = $('#idea-text'); if (t && !t.value) t.focus(); }, 60); });
   $('#idea-form').addEventListener('submit', submitIdea);
@@ -2539,7 +2583,7 @@ function exposeImportApi() {
       const last = mail.reduce((a, n) => Math.max(a, n.createdAt || 0), 0);
       return {
         ready: true, me: nameOf(S.me), lastImport: iso(last),
-        clients: clientsSorted().map(c => ({ id: c.id, name: c.name, jobs: jobsOf(c.id).map(p => ({ id: p.id, title: p.title, status: p.status, due: p.due || '' })) })),
+        clients: clientsSorted().map(c => ({ id: c.id, name: c.name, personal: isPers(c), jobs: jobsOf(c.id).map(p => ({ id: p.id, title: p.title, status: p.status, due: p.due || '' })) })),
         mailKeys: mail.map(n => n.mailKey).filter(Boolean),
         threadsReady: !!S.loaded.threads && !S.threadsErr,
         threads: myThreads().map(t => ({ id: t.id, key: t.key, projectId: t.projectId, projectIds: threadJobs(t), subject: t.subject, messageIds: (t.messages || []).map(m => m.id), lastAt: t.lastAt })),
@@ -2556,7 +2600,8 @@ function exposeImportApi() {
       if (dup) return { ok: true, skipped: 'Dublette', id: dup.id };
       const id = newId();
       const body = { projectId: jobId, text, done: false, author: S.me, createdAt: Date.now(), source: 'mail', mailKey };
-      S.notes.set(id, { ...body, id }); queueRender();
+      const rec = { ...body, id }; if (isPers(proj(jobId))) markP(id, rec);
+      S.notes.set(id, rec); queueRender();
       const ok = await write('notes/' + id, () => nDoc(id).set(body));
       if (!ok) { S.notes.delete(id); queueRender(); return { ok: false, error: 'Speichern fehlgeschlagen' }; }
       return { ok: true, id };
@@ -2639,7 +2684,8 @@ function exposeImportApi() {
       const nid = newId();
       const maxOrder = Math.max(0, ...jobsOf(clientId).map(p => p.order ?? 0));
       const body = { title, clientId, status: 'offen', due: '', members: [S.me], order: maxOrder + 1000, createdBy: S.me, createdAt: Date.now(), source: 'mail' };
-      S.projects.set(nid, { ...body, id: nid }); queueRender();
+      const rec = { ...body, id: nid }; if (isPers(client(clientId))) markP(nid, rec);
+      S.projects.set(nid, rec); queueRender();
       const ok = await write('projects/' + nid, () => pDoc(nid).set(body));
       if (!ok) { S.projects.delete(nid); queueRender(); return { ok: false, error: 'Speichern fehlgeschlagen' }; }
       return { ok: true, id: nid };
@@ -2696,9 +2742,17 @@ function subscribe() {
     if (name === 'projects' || name === 'clients') migrateClients();
     queueRender();
   }, onErr);
-  sub('clients', S.clients);
-  sub('projects', S.projects);
-  sub('notes', S.notes);
+  sub('clients', S.clients.a);
+  sub('projects', S.projects.a);
+  sub('notes', S.notes.a);
+  // persönliche Boards: nur die eigenen (owner = ich); Fehler hier stören den Rest nicht
+  const pDone = new Set();
+  for (const [name, um] of [['boards', S.clients], ['boardJobs', S.projects], ['boardNotes', S.notes]]) S.db.collection(name).whereEq('owner', S.me).onSnapshot(snap => {
+    um.b.clear();
+    for (const d of snap.docs) { const v = d.data(); if (v) { S.pIds.add(d.id); um.b.set(d.id, { ...v, id: d.id, _p: true }); } }
+    pDone.add(name); if (pDone.size === 3) S.pLoaded = true;
+    S.pErr = null; queueRender();
+  }, err => { console.warn(name, err); S.pErr = (err && err.code) || 'error'; queueRender(); });
   sub('slots', S.slots);
   const onThreads = snap => {
     S.threads.clear();
