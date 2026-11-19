@@ -73,7 +73,8 @@ h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance;margin:0;letter-sp
 .me{display:flex;align-items:center;gap:8px;font-size:13.5px}
 .top-right{display:flex;align-items:center;gap:12px 16px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
 @media (max-width:1280px){.me>span:not(.av){display:none}}
-@media (max-width:1140px){#print-btn .lbl{display:none}#print-btn{padding-inline:10px}}
+@media (max-width:1140px){#print-btn .lbl,#idea-btn .lbl{display:none}#print-btn,#idea-btn{padding-inline:10px}}
+#idea-btn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
 
 .banner{margin:12px max(16px,3vw) 0;padding:10px 14px;border-radius:var(--r);background:var(--accent-soft);border:1px solid var(--line);font-size:14px}
 .banner.bad{background:color-mix(in srgb,var(--bad) 12%,var(--surface));}
@@ -393,6 +394,37 @@ a.btn{text-decoration:none;color:inherit}
 #mail-thread .mm{font-size:13.5px}
 #mail-thread .mm-text.clamp{-webkit-line-clamp:16}
 .mailpage-title{font-size:18px;overflow-wrap:anywhere}
+/* Änderungswünsche & Ideen */
+.ideaspage{display:grid;grid-template-columns:minmax(280px,400px) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.ideaspage{grid-template-columns:minmax(0,1fr)}}
+@media (min-width:901px){.idea-form{position:sticky;top:78px}}
+.idea-form textarea{min-height:200px}
+.idea-form-foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.idea-form-foot .hint{margin:0}
+.idea-list{display:grid;gap:12px;align-content:start;min-width:0}
+.idea-head{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap}
+.idea-head h3{font-size:16px;margin-right:auto}
+.idea{border:1px solid var(--line);border-left:4px solid var(--c,var(--accent));border-radius:8px;background:var(--surface);min-width:0}
+.idea-main{padding:10px 12px}
+.idea-meta{display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.idea-meta b{color:var(--ink);font-weight:600}
+.idea-no{font-family:var(--font-mono);font-size:11px;color:var(--muted)}
+.idea-text{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:6px;line-height:1.5}
+.idea-acts{margin-left:auto;display:flex;gap:2px}
+.idea-acts button,.cmt-del{border:0;background:none;padding:4px;color:var(--muted);border-radius:6px;display:inline-grid;place-items:center}
+.idea-acts button:hover,.cmt-del:hover{color:var(--ink);background:var(--surface-2)}
+.idea-acts svg,.cmt-del svg{width:15px;height:15px}
+.idea-edit{display:grid;gap:8px;margin-top:8px}
+.idea-edit .row{display:flex;gap:8px;justify-content:flex-end}
+.idea-cmts{border-top:1px solid var(--line);background:var(--surface-2);padding:8px 12px 10px;display:grid;gap:8px;border-radius:0 0 8px 0}
+.idea-cmts-h{font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
+.cmt{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:start;font-size:13px}
+.cmt-meta{font-size:12px;color:var(--muted)}
+.cmt-meta b{color:var(--ink);font-weight:600}
+.cmt-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.45}
+.cmt-add{display:flex;gap:8px;align-items:flex-end}
+.cmt-add textarea{min-height:36px;height:36px;font-size:13px}
+.cmt-add .btn{min-height:36px}
 .mailpage-title small{font-family:var(--font-body);font-weight:400;font-size:14px;color:var(--muted)}
 .timeline-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
 .untimed{padding:10px 12px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -533,6 +565,7 @@ a.btn{text-decoration:none;color:inherit}
   <div class="top-right">
   <span class="sync" id="sync" data-state="connecting">Verbinde …</span>
   <span class="me" id="me"></span>
+  <button class="btn" id="idea-btn" type="button" title="Änderungswünsche &amp; Ideen fürs Projektboard" aria-label="Änderungswünsche und Ideen" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.2 12.5h3.6M6.7 14.5h2.6M8 1.5a4.5 4.5 0 0 0-2.7 8.1c.5.4.8.9.8 1.4v.5h3.8V11c0-.5.3-1 .8-1.4A4.5 4.5 0 0 0 8 1.5z"/></svg><span class="lbl">Ideen</span></button>
   <button class="btn" id="print-btn" type="button" title="Übersicht aller Kunden, Jobs, Notizen und der Wochenplanung als PDF" aria-label="PDF-Übersicht"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 6V2.5h7V6M4.5 11.5h-2v-5h11v5h-2"/><rect x="4.5" y="9.5" width="7" height="4.5" rx=".5"/></svg><span class="lbl">PDF-Übersicht</span></button>
   <button class="btn" id="team-btn" type="button" hidden>Team</button>
   <button class="btn ghost" id="logout-btn" type="button">Abmelden</button>
@@ -634,6 +667,23 @@ a.btn{text-decoration:none;color:inherit}
     <div class="mailpage">
       <div id="mail-tile"></div>
       <section class="side mail-col" id="mail-thread" aria-label="E-Mail-Verlauf des Jobs"></section>
+    </div>
+  </section>
+
+  <!-- ÄNDERUNGSWÜNSCHE & IDEEN -->
+  <section class="view" id="view-ideas" aria-label="Änderungswünsche und Ideen" hidden>
+    <div class="toolbar">
+      <button class="btn" id="ideas-back" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>Kunden</button>
+      <h2 class="mailpage-title">Änderungswünsche &amp; Ideen</h2>
+    </div>
+    <div class="ideaspage">
+      <form class="side idea-form" id="idea-form" autocomplete="off">
+        <h4>Neuer Änderungswunsch</h4>
+        <p class="hint" style="margin:0">Was soll am Projektboard anders oder neu werden? Am besten mit Ansicht, was stört und wie es besser wäre.</p>
+        <textarea id="idea-text" maxlength="4000" placeholder="Mein Wunsch …" aria-label="Änderungswunsch"></textarea>
+        <div class="idea-form-foot"><span class="hint">⌘/Strg + Enter</span><button class="btn primary" type="submit">Eintragen</button></div>
+      </form>
+      <section class="idea-list" id="idea-list" aria-label="Alle Änderungswünsche"></section>
     </div>
   </section>
 </main>
@@ -758,10 +808,11 @@ const S = {
   person: prefs.person || 'all', q: '', status: 'all',
   showDone: !!prefs.showDone, density: prefs.density || 'm', weekend: !!prefs.weekend,
   notesOpen: prefs.notesOpen !== false, jobNotes: new Map(Object.entries(prefs.jobNotes || {}).filter(([, v]) => typeof v === 'boolean')),
-  expanded: new Set(), dragging: false, pending: false, sortables: [], boardSortable: null
+  expanded: new Set(), dragging: false, pending: false, sortables: [], boardSortable: null,
+  ideas: new Map(), ideaComments: new Map(), ideasErr: null, ideasLoaded: false, ideasSig: '', ideaSort: prefs.ideaSort === 'old' ? 'old' : 'new', ideaDrafts: new Map(), ideaEdit: null
 };
 function savePrefs() {
-  try { localStorage.setItem('pb-prefs-v1', JSON.stringify({ person: S.person, showDone: S.showDone, density: S.density, weekend: S.weekend, notesOpen: S.notesOpen, jobNotes: Object.fromEntries(S.jobNotes) })); } catch (e) { /* egal */ }
+  try { localStorage.setItem('pb-prefs-v1', JSON.stringify({ person: S.person, showDone: S.showDone, density: S.density, weekend: S.weekend, notesOpen: S.notesOpen, jobNotes: Object.fromEntries(S.jobNotes), ideaSort: S.ideaSort })); } catch (e) { /* egal */ }
 }
 
 /* ---------- Abgeleitete Daten ---------- */
@@ -1027,7 +1078,9 @@ async function render() {
   else if (S.view === 'week') renderWeek();
   else if (S.view === 'month') renderMonth();
   else if (S.view === 'mail') renderMailView();
+  else if (S.view === 'ideas') renderIdeas();
   else renderDay();
+  $('#idea-btn').setAttribute('aria-pressed', String(S.view === 'ideas'));
 }
 function renderMe() {
   const el = $('#me'); el.replaceChildren();
@@ -2090,6 +2143,136 @@ function editNote(span) {
   span.addEventListener('keydown', onKey); span.addEventListener('blur', onBlur);
 }
 
+/* ---------- Änderungswünsche & Ideen ---------- */
+const IDEA_MAX = 4000, CMT_MAX = 2000;
+const iDoc = id => S.db.collection('ideas').doc(id);
+const icDoc = id => S.db.collection('ideaComments').doc(id);
+const mayEdit = x => !!x && (x.author === S.me || S.isAdmin);
+function fmtStamp(ms) {
+  const d = new Date(ms); if (!ms || isNaN(d)) return '';
+  return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ', ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ' Uhr';
+}
+async function submitIdea(e) {
+  if (e) e.preventDefault();
+  const ta = $('#idea-text'); const text = clean(ta.value, IDEA_MAX).trim();
+  if (!text) { ta.focus(); return; }
+  const id = newId(); const body = { text, author: S.me, createdAt: Date.now() };
+  S.ideas.set(id, { ...body, id }); ta.value = ''; queueRender();
+  const ok = await write('ideas/' + id, () => iDoc(id).set(body), 'Änderungswunsch eingetragen');
+  if (!ok) { S.ideas.delete(id); if (!ta.value) ta.value = text; queueRender(); }
+}
+async function saveIdeaEdit(id) {
+  const x = S.ideas.get(id); if (!mayEdit(x)) return;
+  const text = clean(S.ideaDrafts.has('e:' + id) ? S.ideaDrafts.get('e:' + id) : x.text, IDEA_MAX).trim();
+  if (!text) { toast('Der Text darf nicht leer sein.', true); return; }
+  S.ideaEdit = null; S.ideaDrafts.delete('e:' + id);
+  if (text === x.text) { queueRender(); return; }
+  const patch = { text, editedAt: Date.now() };
+  S.ideas.set(id, { ...x, ...patch }); queueRender();
+  await write('ideas/' + id, () => iDoc(id).update(patch), 'Gespeichert');
+}
+function confirmDeleteIdea(id) {
+  const x = S.ideas.get(id); if (!mayEdit(x)) return;
+  const n = [...S.ideaComments.values()].filter(c => c.ideaId === id).length;
+  openModal('Änderungswunsch löschen?', h('p', { style: 'margin:0', text: `Der Wunsch wird für alle gelöscht${n ? `, zusammen mit ${n} Kommentar${n === 1 ? '' : 'en'}` : ''}. Das lässt sich nicht rückgängig machen.` }), [
+    h('button', { class: 'btn', type: 'button', onclick: closeModal }, 'Abbrechen'),
+    h('button', { class: 'btn primary', type: 'button', style: 'background:var(--bad);border-color:var(--bad);color:#fff', onclick: () => { closeModal(); deleteIdea(id); } }, 'Löschen')
+  ]);
+}
+async function deleteIdea(id) {
+  const x = S.ideas.get(id); if (!x) return;
+  const cmts = [...S.ideaComments.values()].filter(c => c.ideaId === id);
+  for (const c of cmts) { const ok = await write('ideaComments/' + c.id, () => icDoc(c.id).delete()); if (!ok) return; S.ideaComments.delete(c.id); }
+  S.ideas.delete(id); queueRender();
+  const ok = await write('ideas/' + id, () => iDoc(id).delete(), 'Änderungswunsch gelöscht');
+  if (!ok) { S.ideas.set(id, x); queueRender(); }
+}
+async function sendComment(ideaId) {
+  if (!S.ideas.has(ideaId)) return;
+  const k = 'c:' + ideaId;
+  const ta = $(`textarea[data-idea-input="${CSS.escape(k)}"]`);
+  const text = clean(ta ? ta.value : S.ideaDrafts.get(k), CMT_MAX).trim();
+  if (!text) { if (ta) ta.focus(); return; }
+  const id = newId(); const body = { ideaId, text, author: S.me, createdAt: Date.now() };
+  S.ideaComments.set(id, { ...body, id }); S.ideaDrafts.delete(k); if (ta) ta.value = '';
+  S.ideaRefocus = k; queueRender();
+  const ok = await write('ideaComments/' + id, () => icDoc(id).set(body));
+  if (!ok) { S.ideaComments.delete(id); S.ideaDrafts.set(k, text); queueRender(); }
+}
+async function deleteComment(id) {
+  const c = S.ideaComments.get(id); if (!c) return;
+  if (!(mayEdit(c) || mayEdit(S.ideas.get(c.ideaId)))) return;
+  S.ideaComments.delete(id); queueRender();
+  const ok = await write('ideaComments/' + id, () => icDoc(id).delete(), 'Kommentar gelöscht');
+  if (!ok) { S.ideaComments.set(id, c); queueRender(); }
+}
+function onIdeaClick(e) {
+  const b = e.target.closest('button[data-ia]'); if (!b) return;
+  const id = b.dataset.id, a = b.dataset.ia;
+  if (a === 'sort') { S.ideaSort = b.dataset.v === 'old' ? 'old' : 'new'; savePrefs(); queueRender(); }
+  else if (a === 'edit') { S.ideaEdit = id; S.ideaDrafts.set('e:' + id, (S.ideas.get(id) || {}).text || ''); S.ideaRefocus = 'e:' + id; queueRender(); }
+  else if (a === 'edit-cancel') { S.ideaEdit = null; S.ideaDrafts.delete('e:' + id); queueRender(); }
+  else if (a === 'edit-save') saveIdeaEdit(id);
+  else if (a === 'del') confirmDeleteIdea(id);
+  else if (a === 'cmt') sendComment(id);
+  else if (a === 'cmt-del') deleteComment(id);
+}
+function renderIdeas() {
+  const list = $('#idea-list'); if (!list) return;
+  const asc = [...S.ideas.values()].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0) || String(a.id).localeCompare(String(b.id)));
+  const no = new Map(asc.map((x, i) => [x.id, i + 1]));
+  const ideas = S.ideaSort === 'old' ? asc : asc.slice().reverse();
+  const byIdea = new Map();
+  for (const c of S.ideaComments.values()) { if (!byIdea.has(c.ideaId)) byIdea.set(c.ideaId, []); byIdea.get(c.ideaId).push(c); }
+  for (const arr of byIdea.values()) arr.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  const sig = JSON.stringify([S.ideaSort, S.ideasErr, S.ideasLoaded, S.ideaEdit, S.me, S.isAdmin, ideas.map(x => [x.id, x.text, x.editedAt, x.author]),
+    [...byIdea.entries()].map(([k, v]) => [k, v.map(c => [c.id, c.text, c.author])]), Object.entries(S.prof).map(([k, v]) => [k, v && v.name, v && v.color, v && v.avatarUrl])]);
+  if (sig === S.ideasSig && list.childElementCount && !S.ideaRefocus) return;
+  S.ideasSig = sig;
+  const ae = document.activeElement;
+  let refocus = S.ideaRefocus ? { key: S.ideaRefocus } : null; S.ideaRefocus = null;
+  if (!refocus && ae && list.contains(ae) && ae.dataset && ae.dataset.ideaInput) refocus = { key: ae.dataset.ideaInput, s: ae.selectionStart, e: ae.selectionEnd };
+  const sortBtn = (v, label) => h('button', { type: 'button', 'data-ia': 'sort', 'data-v': v, 'aria-pressed': String(S.ideaSort === v) }, label);
+  const head = h('div', { class: 'idea-head' }, h('h3', { text: `Alle Änderungswünsche (${ideas.length})` }),
+    h('div', { class: 'seg', role: 'group', 'aria-label': 'Reihenfolge' }, sortBtn('new', 'Neueste zuerst'), sortBtn('old', 'Älteste zuerst')));
+  const kids = [head];
+  if (S.ideasErr) kids.push(h('p', { class: 'hint', style: 'margin:0', text: S.ideasErr === 'revoked' ? 'Die Änderungswünsche können gerade nicht geladen werden (fehlende Berechtigung).' : 'Die Änderungswünsche können gerade nicht geladen werden. Seite neu laden.' }));
+  else if (!S.ideasLoaded) kids.push(h('p', { class: 'hint', style: 'margin:0', text: 'Lade …' }));
+  else if (!ideas.length) kids.push(h('div', { class: 'empty' }, h('h2', { text: 'Noch keine Wünsche' }), h('p', { text: 'Trag links den ersten Änderungswunsch ein.' })));
+  for (const x of ideas) {
+    const cmts = byIdea.get(x.id) || [];
+    const acts = mayEdit(x) && S.ideaEdit !== x.id ? h('div', { class: 'idea-acts' },
+      h('button', { type: 'button', 'data-ia': 'edit', 'data-id': x.id, title: 'Bearbeiten', 'aria-label': 'Bearbeiten' }, svg(ICON.edit)),
+      h('button', { type: 'button', 'data-ia': 'del', 'data-id': x.id, title: 'Löschen', 'aria-label': 'Löschen' }, svg(ICON.trash))) : null;
+    const meta = h('div', { class: 'idea-meta' }, avatar(x.author, 'sm'), h('b', { text: nameOf(x.author) }),
+      h('span', { text: fmtStamp(x.createdAt) + (x.editedAt ? ' · bearbeitet' : '') }), h('span', { class: 'idea-no', text: '#' + no.get(x.id) }), acts);
+    let body;
+    if (S.ideaEdit === x.id) {
+      const k = 'e:' + x.id;
+      body = h('div', { class: 'idea-edit' },
+        h('textarea', { 'data-idea-input': k, maxlength: String(IDEA_MAX), rows: '6', 'aria-label': 'Änderungswunsch bearbeiten' }),
+        h('div', { class: 'row' }, h('button', { class: 'btn', type: 'button', 'data-ia': 'edit-cancel', 'data-id': x.id }, 'Abbrechen'), h('button', { class: 'btn primary', type: 'button', 'data-ia': 'edit-save', 'data-id': x.id }, 'Speichern')));
+      body.querySelector('textarea').value = S.ideaDrafts.has(k) ? S.ideaDrafts.get(k) : x.text;
+    } else body = h('div', { class: 'idea-text', text: x.text });
+    const ck = 'c:' + x.id;
+    const cmtBox = h('div', { class: 'idea-cmts' },
+      cmts.length ? h('div', { class: 'idea-cmts-h', text: `${cmts.length} Kommentar${cmts.length === 1 ? '' : 'e'}` }) : null,
+      cmts.map(c => h('div', { class: 'cmt' }, avatar(c.author, 'sm'),
+        h('div', {}, h('div', { class: 'cmt-meta' }, h('b', { text: nameOf(c.author) }), ' · ' + fmtStamp(c.createdAt)), h('div', { class: 'cmt-text', text: c.text })),
+        (mayEdit(c) || mayEdit(x)) ? h('button', { class: 'cmt-del', type: 'button', 'data-ia': 'cmt-del', 'data-id': c.id, title: 'Kommentar löschen', 'aria-label': 'Kommentar löschen' }, svg(ICON.trash)) : h('span'))),
+      h('div', { class: 'cmt-add' },
+        h('textarea', { 'data-idea-input': ck, maxlength: String(CMT_MAX), rows: '1', placeholder: 'Kommentieren …', title: 'Enter = senden, Umschalt+Enter = neue Zeile', 'aria-label': 'Kommentar schreiben' }),
+        h('button', { class: 'btn', type: 'button', 'data-ia': 'cmt', 'data-id': x.id }, 'Senden')));
+    const cta = cmtBox.querySelector('textarea[data-idea-input]'); if (S.ideaDrafts.has(ck)) cta.value = S.ideaDrafts.get(ck);
+    kids.push(h('article', { class: 'idea', '--c': (S.prof[x.author] && S.prof[x.author].color) || 'var(--accent)' }, h('div', { class: 'idea-main' }, meta, body), cmtBox));
+  }
+  list.replaceChildren(...kids);
+  if (refocus) {
+    const el = list.querySelector(`textarea[data-idea-input="${CSS.escape(refocus.key)}"]`);
+    if (el) { el.focus({ preventScroll: true }); const n = el.value.length; try { el.setSelectionRange(refocus.s ?? n, refocus.e ?? n); } catch (e) {} }
+  }
+}
+
 /* ---------- Ereignisse ---------- */
 function setView(v, push = true) {
   S.view = v;
@@ -2099,6 +2282,7 @@ function setView(v, push = true) {
 function applyHash() {
   const t = (location.hash || '').slice(1);
   if (t.startsWith('mail/')) { S.view = 'mail'; try { S.mailJob = decodeURIComponent(t.slice(5)); } catch (e) { S.mailJob = t.slice(5); } window.scrollTo(0, 0); return; }
+  if (t === 'ideen') { if (S.view !== 'ideas') window.scrollTo(0, 0); S.view = 'ideas'; return; }
   S.view = t === 'monat' ? 'month' : t === 'woche' ? 'week' : t === 'tag' ? 'day' : 'board';
 }
 function bindStatic() {
@@ -2125,6 +2309,13 @@ function bindStatic() {
     S.mailSig = ''; S.mailSigP = ''; queueRender();
   });
   $('#mail-back').addEventListener('click', () => setView('board'));
+  $('#ideas-back').addEventListener('click', () => setView('board'));
+  $('#idea-btn').addEventListener('click', () => { if (S.view === 'ideas') { setView('board'); return; } if (location.hash !== '#ideen') location.hash = 'ideen'; else { S.view = 'ideas'; queueRender(); } setTimeout(() => { const t = $('#idea-text'); if (t && !t.value) t.focus(); }, 60); });
+  $('#idea-form').addEventListener('submit', submitIdea);
+  $('#idea-text').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submitIdea(e); } });
+  $('#idea-list').addEventListener('click', onIdeaClick);
+  $('#idea-list').addEventListener('input', e => { const k = e.target.dataset && e.target.dataset.ideaInput; if (k) S.ideaDrafts.set(k, e.target.value); });
+  $('#idea-list').addEventListener('keydown', e => { const k = e.target.dataset && e.target.dataset.ideaInput; if (!k) return; if (e.key === 'Escape' && k.startsWith('e:')) { S.ideaEdit = null; S.ideaDrafts.delete(k); queueRender(); return; } if (e.key !== 'Enter' || e.isComposing) return; if (k.startsWith('c:') && !e.shiftKey) { e.preventDefault(); sendComment(k.slice(2)); } else if (k.startsWith('e:') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveIdeaEdit(k.slice(2)); } });
   $('#weekgrid').addEventListener('pointerdown', weekPointerDown);
   $('#palette').addEventListener('pointerdown', weekPointerDown);
   $('#week-prev').addEventListener('click', () => { S.weekStart = addDays(S.weekStart, -7); queueRender(); });
@@ -2439,6 +2630,11 @@ function subscribe() {
   // Alle Verläufe des Teams lesen; klappt das (noch) nicht, nur die eigenen
   let teamOk = false;
   S.db.collection('threads').onSnapshot(snap => { teamOk = true; onThreads(snap); }, err => { console.warn('threads (Team)', err); if (!teamOk) ownThreads(); });
+  for (const [name, map] of [['ideas', S.ideas], ['ideaComments', S.ideaComments]]) S.db.collection(name).onSnapshot(snap => {
+    map.clear();
+    for (const d of snap.docs) { const v = d.data(); if (v) map.set(d.id, { ...v, id: d.id }); }
+    S.ideasErr = null; S.ideasLoaded = true; if (S.view === 'ideas') queueRender();
+  }, err => { console.warn(name, err); S.ideasErr = (err && err.code) || 'error'; if (S.view === 'ideas') queueRender(); });
   S.db.collection('team').onSnapshot(snap => {
     S.teamData = new Map(snap.docs.map(d => [d.id, d.data() || {}]));
     S.team = new Set(S.teamData.keys()); queueRender();
