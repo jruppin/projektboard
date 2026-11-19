@@ -107,6 +107,13 @@ textarea{width:100%;resize:vertical;min-height:70px}
 .summary{display:flex;flex-wrap:wrap;gap:8px}
 .board-bar{display:flex;align-items:flex-start;justify-content:space-between;gap:10px 14px;margin-bottom:14px}
 .notes-all{flex:none;margin-left:auto}
+.tiles-all{flex:none;margin-left:auto}
+.tiles-all+.notes-all{margin-left:0}
+.tiles-all svg{width:15px;height:15px}
+.tile.collapsed .jobs,.tile.collapsed .done-toggle,.tile.collapsed .job-add,.tile.collapsed [data-act="notes-client"]{display:none !important}
+.tile.collapsed .tile-meta{padding-bottom:12px}
+button.pill.jobs-count{cursor:pointer;font:inherit}
+button.pill.jobs-count:hover{filter:brightness(.96)}
 .notes-all svg,.notes-tg svg{width:15px;height:15px;transition:transform .15s}
 .notes-all[aria-expanded="false"] svg,.notes-tg[aria-expanded="false"] svg{transform:rotate(-90deg)}
 .job-actions .notes-tg{width:auto;min-width:26px;padding:0 4px;gap:2px;display:inline-flex;align-items:center;justify-content:center}
@@ -604,6 +611,7 @@ a.btn{text-decoration:none;color:inherit}
     </div>
     <div class="board-bar">
       <div class="summary" id="summary"></div>
+      <button class="btn tiles-all" id="tiles-all" type="button" aria-expanded="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 3 4 4 4-4M4 9l4 4 4-4"/></svg><span>Alle Kunden einklappen</span></button>
       <button class="btn notes-all" id="notes-all" type="button" aria-expanded="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg><span>Alle Notizen einklappen</span></button>
     </div>
     <div class="grid" id="grid" data-density="m"></div>
@@ -827,12 +835,13 @@ const S = {
   view: 'board', weekStart: monday(new Date()), day: today(), month: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   person: prefs.person || 'all', q: '', status: 'all',
   showDone: !!prefs.showDone, density: prefs.density || 'm', weekend: !!prefs.weekend,
+  tilesOpen: prefs.tilesOpen !== false, tileOpen: new Map(Object.entries(prefs.tileOpen || {}).filter(([, v]) => typeof v === 'boolean')),
   notesOpen: prefs.notesOpen !== false, jobNotes: new Map(Object.entries(prefs.jobNotes || {}).filter(([, v]) => typeof v === 'boolean')),
   expanded: new Set(), dragging: false, pending: false, sortables: [], boardSortable: null,
   ideas: new Map(), ideaComments: new Map(), ideasErr: null, ideasLoaded: false, ideasSig: '', ideaSort: prefs.ideaSort === 'old' ? 'old' : 'new', ideaFilter: ['open', 'done'].includes(prefs.ideaFilter) ? prefs.ideaFilter : 'all', ideaDrafts: new Map(), ideaEdit: null
 };
 function savePrefs() {
-  try { localStorage.setItem('pb-prefs-v1', JSON.stringify({ person: S.person, showDone: S.showDone, density: S.density, weekend: S.weekend, notesOpen: S.notesOpen, jobNotes: Object.fromEntries(S.jobNotes), ideaSort: S.ideaSort, ideaFilter: S.ideaFilter })); } catch (e) { /* egal */ }
+  try { localStorage.setItem('pb-prefs-v1', JSON.stringify({ person: S.person, showDone: S.showDone, density: S.density, weekend: S.weekend, notesOpen: S.notesOpen, jobNotes: Object.fromEntries(S.jobNotes), tilesOpen: S.tilesOpen, tileOpen: Object.fromEntries(S.tileOpen), ideaSort: S.ideaSort, ideaFilter: S.ideaFilter })); } catch (e) { /* egal */ }
 }
 
 /* ---------- Abgeleitete Daten ---------- */
@@ -1188,9 +1197,15 @@ function renderBoard() {
     else if (S.clients.size || S.projects.size) empty.replaceChildren(h('h2', { text: 'Keine Treffer' }), h('p', { text: 'Kein Kunde und kein Job passt zu Suche oder Filter.' }), h('button', { class: 'btn', type: 'button', onclick: resetFilters }, 'Filter zurücksetzen'));
     else empty.replaceChildren(h('h2', { text: 'Noch keine Kunden' }), h('p', { text: 'Jede Kachel ist ein Kunde. Leg einen an und trag darin seine Jobs ein.' }), S.canWrite ? h('button', { class: 'btn primary', type: 'button', onclick: () => openClientDialog() }, 'Neuer Kunde') : null);
   } else empty.hidden = true;
+  const tilesBtn = $('#tiles-all');
+  const anyTileOpen = list.some(x => tileIsOpen(x.c.id));
+  tilesBtn.hidden = !list.length;
+  tilesBtn.setAttribute('aria-expanded', String(anyTileOpen));
+  $('span', tilesBtn).textContent = anyTileOpen ? 'Alle Kunden einklappen' : 'Alle Kunden ausklappen';
+  tilesBtn.title = anyTileOpen ? 'Kacheln auf den Kundennamen verkleinern – Jobs ausblenden' : 'Alle Kacheln mit ihren Jobs zeigen';
   const allBtn = $('#notes-all');
-  const anyOpen = list.some(x => x.jobs.some(p => jobNotesOpen(p.id)));
-  allBtn.hidden = !list.some(x => x.jobs.length);
+  const anyOpen = list.some(x => tileIsOpen(x.c.id) && x.jobs.some(p => jobNotesOpen(p.id)));
+  allBtn.hidden = !list.some(x => tileIsOpen(x.c.id) && x.jobs.length);
   allBtn.setAttribute('aria-expanded', String(anyOpen));
   $('span', allBtn).textContent = anyOpen ? 'Alle Notizen einklappen' : 'Alle Notizen ausklappen';
   layoutMasonry($$(':scope > .tile', grid));
@@ -1211,6 +1226,17 @@ function observeMasonry(el) {
   if (!('ResizeObserver' in window)) return;
   if (!masonryRO) masonryRO = new ResizeObserver(entries => layoutMasonry(entries.map(e => e.target)));
   masonryRO.observe(el);
+}
+/* Kacheln ein-/ausklappen: globaler Standard + Abweichungen je Kunde (im Browser gemerkt); bei einer Suche immer offen */
+const tileIsOpen = cid => !!S.q.trim() || (S.tileOpen.has(cid) ? S.tileOpen.get(cid) : S.tilesOpen);
+function toggleAllTiles() {
+  const anyOpen = visibleClients().some(x => tileIsOpen(x.c.id));
+  S.tilesOpen = !anyOpen; S.tileOpen.clear(); savePrefs(); queueRender();
+}
+function toggleTile(cid) {
+  const open = !tileIsOpen(cid);
+  if (open === S.tilesOpen) S.tileOpen.delete(cid); else S.tileOpen.set(cid, open);
+  savePrefs(); queueRender();
 }
 /* Notizen ein-/ausklappen: globaler Standard + Abweichungen je Job (im Browser gemerkt) */
 const jobNotesOpen = pid => S.jobNotes.has(pid) ? S.jobNotes.get(pid) : S.notesOpen;
@@ -1298,7 +1324,12 @@ function updateTile(el, c, jobs) {
   const all = jobsOf(c.id);
   const open = all.filter(p => p.status !== 'erledigt');
   const meta = $('.tile-meta', el);
-  const parts = [h('span', { class: 'pill chip' }, open.length ? `${open.length} offene${open.length === 1 ? 'r' : ''} Job${open.length === 1 ? '' : 's'}` : 'Keine offenen Jobs')];
+  const inMail = !!el.closest('#mail-tile');
+  const tOpen = inMail || tileIsOpen(c.id);
+  el.classList.toggle('collapsed', !tOpen);
+  const cnt = open.length ? `${open.length} offene${open.length === 1 ? 'r' : ''} Job${open.length === 1 ? '' : 's'}` : 'Keine offenen Jobs';
+  const parts = [inMail ? h('span', { class: 'pill chip' }, cnt)
+    : h('button', { class: 'pill chip jobs-count', type: 'button', 'data-act': 'tile-toggle', 'aria-expanded': String(tOpen), title: tOpen ? 'Jobs dieses Kunden einklappen' : 'Jobs dieses Kunden zeigen' }, cnt)];
   const wh = all.reduce((a, p) => a + weekHours(p.id), 0);
   if (wh > 0) parts.push(h('button', { class: 'pill chip hours', type: 'button', 'data-act': 'to-week', title: 'In der Wochenplanung zeigen' }, `${fmtH(wh)} diese Woche`));
   const od = open.filter(p => p.due && parseYmd(p.due) < today()).length;
@@ -2343,6 +2374,7 @@ function bindStatic() {
   for (const sel of $$('.person-filter')) sel.addEventListener('change', e => { S.person = e.target.value; savePrefs(); e.target.blur(); queueRender(); });
   $('#new-project').addEventListener('click', () => openClientDialog());
   $('#notes-all').addEventListener('click', toggleAllNotes);
+  $('#tiles-all').addEventListener('click', toggleAllTiles);
   for (const sel of ['#day-mail', '#mail-thread']) $(sel).addEventListener('click', e => {
     const b = e.target.closest('button[data-act]'); if (!b) return;
     if (b.dataset.act === 'mm-more') { const id = b.dataset.mid; S.mmFull.has(id) ? S.mmFull.delete(id) : S.mmFull.add(id); }
@@ -2426,6 +2458,7 @@ function bindStatic() {
       if (a === 'mail-job' && job) { openMailView(job.dataset.job); return; }
       if (a === 'notes-job' && job) { toggleJobNotes(job.dataset.job); return; }
       if (a === 'notes-client' && tile) { toggleClientNotes(tile.dataset.id); return; }
+      if (a === 'tile-toggle' && tile) { toggleTile(tile.dataset.id); return; }
       if (a === 'more' && job) { const id = job.dataset.job; if (S.expanded.has(id)) S.expanded.delete(id); else S.expanded.add(id); queueRender(); return; }
       if ((a === 'h+' || a === 'h-')) { const sl = act.closest('[data-slot]'); if (sl) bumpHours(sl.dataset.slot, a === 'h+' ? 0.5 : -0.5); return; }
     }
