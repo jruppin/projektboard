@@ -436,6 +436,7 @@ a.btn{text-decoration:none;color:inherit}
 .idea.done .idea-text{color:var(--muted)}
 .idea-donebar{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:3px 8px;border-radius:999px;background:color-mix(in srgb,var(--ok) 14%,var(--surface));color:var(--ink);font-size:12px}
 .idea-donebar svg{width:13px;height:13px;color:var(--ok)}
+.mine-only{font-size:12.5px;color:var(--muted);padding:4px 10px;border:1px dashed var(--line);border-radius:999px;white-space:nowrap}
 .mailpage-title small{font-family:var(--font-body);font-weight:400;font-size:14px;color:var(--muted)}
 .timeline-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
 .untimed{padding:10px 12px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -614,7 +615,7 @@ a.btn{text-decoration:none;color:inherit}
       <button class="icon-btn" id="month-next" type="button" aria-label="Nächster Monat"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg></button>
       <button class="btn" id="month-today" type="button">Dieser Monat</button>
       <span class="grow"></span>
-      <label class="field" for="person-month">Person <select id="person-month" class="person-filter"></select></label>
+      <span class="mine-only" title="Monat, Woche und Tag zeigen nur deine eigene Planung">Nur meine Planung</span>
       <label class="check" for="weekend-m"><input type="checkbox" id="weekend-m"> Wochenende</label>
     </div>
     <div class="week-layout">
@@ -635,7 +636,7 @@ a.btn{text-decoration:none;color:inherit}
       <button class="icon-btn" id="week-next" type="button" aria-label="Nächste Woche"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg></button>
       <button class="btn" id="week-today" type="button">Diese Woche</button>
       <span class="grow"></span>
-      <label class="field" for="person-week">Person <select id="person-week" class="person-filter"></select></label>
+      <span class="mine-only" title="Monat, Woche und Tag zeigen nur deine eigene Planung">Nur meine Planung</span>
       <label class="check" for="weekend"><input type="checkbox" id="weekend"> Wochenende</label>
     </div>
     <div class="week-layout">
@@ -656,7 +657,7 @@ a.btn{text-decoration:none;color:inherit}
       <button class="icon-btn" id="day-next" type="button" aria-label="Nächster Tag"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg></button>
       <button class="btn" id="day-today" type="button">Heute</button>
       <span class="grow"></span>
-      <label class="field" for="person-day">Person <select id="person-day" class="person-filter"></select></label>
+      <span class="mine-only" title="Monat, Woche und Tag zeigen nur deine eigene Planung">Nur meine Planung</span>
       <button class="btn primary write-only" id="day-add" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3v10M3 8h10"/></svg>Zeit einplanen</button>
     </div>
     <div class="day-layout">
@@ -843,9 +844,10 @@ function clientsSorted() {
   if ([...S.projects.values()].some(p => !clientOf(p))) list.push({ id: NO_CLIENT, name: 'Ohne Kunde', color: '#55636b', virtual: true });
   return list;
 }
-function slotsOn(date, person = S.person) {
+// Monat, Woche, Tag und PDF-Wochenplan: nur die eigene Planung
+function slotsOn(date, person = S.me) {
   return [...S.slots.values()]
-    .filter(s => s.date === date && proj(s.projectId) && (person === 'all' || s.userId === person))
+    .filter(s => s.date === date && proj(s.projectId) && !!person && s.userId === person)
     .sort((a, b) => (toMin(a.start) ?? 9999) - (toMin(b.start) ?? 9999) || (a.createdAt || 0) - (b.createdAt || 0));
 }
 function weekHours(pid, ws = monday(new Date())) {
@@ -1456,7 +1458,7 @@ function buildPrintView() {
           notes.length ? h('ul', { class: 'pv-notes' }, notes.map(n => h('li', { class: n.done ? 'done' : null, text: n.text }))) : null);
       }) : h('div', { class: 'pv-job pv-empty', text: 'Keine offenen Jobs.' }));
   });
-  // Teil 2: Wochenplanung der gewählten Woche (Person-Filter wie in der App)
+  // Teil 2: eigene Wochenplanung der gewählten Woche
   const days = [];
   for (let i = 0; i < 7; i++) {
     const d = addDays(ws, i), key = ymd(d);
@@ -1470,14 +1472,13 @@ function buildPrintView() {
     return h('div', { class: 'pv-day' },
       h('h3', {}, h('span', { text: `${DAYS_LONG[i]}, ${fmtD(d)}` }), h('span', { class: 'pv-sum', text: sum ? fmtH(sum) : '–' })),
       list.length ? h('table', {},
-        h('thead', {}, h('tr', {}, ['Zeit', 'Kunde', 'Job', 'Person', 'Dauer', 'Notiz'].map(t => h('th', { text: t })))),
+        h('thead', {}, h('tr', {}, ['Zeit', 'Kunde', 'Job', 'Dauer', 'Notiz'].map(t => h('th', { text: t })))),
         h('tbody', {}, list.map(s => {
           const p = proj(s.projectId); const m = toMin(s.start);
           return h('tr', {},
             h('td', { class: 'pv-num', text: m == null ? '–' : `${s.start}–${fromMin(Math.min(24 * 60, m + Math.round((Number(s.hours) || 0) * 60)))}` }),
             h('td', {}, h('span', { class: 'pv-dot', '--c': jobColor(p) }), clientName(p)),
             h('td', { text: p.title }),
-            h('td', { text: s.userId ? nameOf(s.userId) : '' }),
             h('td', { class: 'pv-num', text: fmtH(s.hours) }),
             h('td', { text: s.note || '' }));
         }))) : h('p', { class: 'pv-empty', text: 'Nichts geplant.' }));
@@ -1489,7 +1490,7 @@ function buildPrintView() {
     h('h2', { text: 'Kunden, Jobs und Notizen' }),
     ...(clients.length ? clients : [h('p', { class: 'pv-empty', text: 'Noch keine Kunden angelegt.' })]),
     h('section', { class: 'pv-week' },
-      h('h2', {}, `Wochenplanung KW ${kw} · ${fmtD(ws)}–${fmtD(we)}${we.getFullYear()}`, h('span', { class: 'pv-sum', text: `${fmtH(weekSum)} geplant${S.person !== 'all' ? ' · ' + nameOf(S.person) : ''}` })),
+      h('h2', {}, `Wochenplanung KW ${kw} · ${fmtD(ws)}–${fmtD(we)}${we.getFullYear()}`, h('span', { class: 'pv-sum', text: `${fmtH(weekSum)} geplant${S.me ? ' · ' + nameOf(S.me) : ''}` })),
       dayBlocks));
 }
 function printOverview() {
@@ -1526,7 +1527,7 @@ function renderMonth() {
   const label = m0.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
   const last = new Date(m0.getFullYear(), m0.getMonth() + 1, 0);
   let monthSum = 0;
-  for (const s of S.slots.values()) if (s.date >= ymd(m0) && s.date <= ymd(last) && proj(s.projectId) && (S.person === 'all' || s.userId === S.person)) monthSum += Number(s.hours) || 0;
+  for (const s of S.slots.values()) if (s.date >= ymd(m0) && s.date <= ymd(last) && proj(s.projectId) && !!S.me && s.userId === S.me) monthSum += Number(s.hours) || 0;
   $('#month-label').replaceChildren(label + ' ', h('span', { style: 'color:var(--muted);font-weight:400;font-family:var(--font-body);font-size:14px', text: monthSum ? `· ${fmtH(monthSum)} geplant` : '' }));
   buildPalette($('#palette-month'));
 
@@ -1580,7 +1581,7 @@ function renderWeek() {
   H1 = Math.min(H1, 24);
   const PX = 48;
   const tday = ymd(today());
-  const capPeople = S.person === 'all' ? Math.max(1, new Set([...S.slots.values()].filter(s => s.date >= ymd(start) && s.date <= ymd(addDays(start, 6))).map(s => s.userId)).size) : 1;
+  const capPeople = 1;
 
   const grid = $('#weekgrid');
   grid.className = 'wk';
@@ -1693,7 +1694,7 @@ function weekPointerDown(e) {
     if (!target) { queueRender(); return; }
     const when = `${fmtD(parseYmd(target.date))}${target.start ? ' · ' + target.start : ' · ohne Uhrzeit'}`;
     if (isNew) {
-      saveSlot(null, { projectId: pid, date: target.date, start: target.start, hours: dur / 60, userId: S.person !== 'all' ? S.person : (S.me || null) })
+      saveSlot(null, { projectId: pid, date: target.date, start: target.start, hours: dur / 60, userId: S.me || null })
         .then(ok => { if (ok) toast(`${p.title}: ${fmtH(dur / 60)} am ${when} eingeplant`); });
     } else {
       const patch = {};
@@ -1712,7 +1713,7 @@ function onDayAdd(evt) {
   const date = evt.to.dataset.date, item = evt.item;
   if (item.dataset.project) {
     const pid = item.dataset.project; item.remove();
-    const userId = S.person !== 'all' ? S.person : (S.me || null);
+    const userId = S.me || null;
     saveSlot(null, { projectId: pid, date, hours: 2, userId }).then(ok => { if (ok) toast(`${proj(pid) ? proj(pid).title : 'Job'}: 2 h am ${fmtD(parseYmd(date))} eingeplant`); });
   } else if (item.dataset.slot) {
     saveSlot(item.dataset.slot, { date });
@@ -2104,11 +2105,11 @@ function openSlotDialog({ id = null, projectId = '', date = ymd(today()), start 
   const fHours = h('input', { type: 'number', id: 's-hours', min: '0.25', max: '24', step: '0.25', value: String(s ? s.hours : 2) });
   const people = peopleSorted();
   const fUser = h('select', { id: 's-user' }, people.length ? people.map(x => h('option', { value: x, text: x === S.me ? `${nameOf(x)} (ich)` : nameOf(x) })) : h('option', { value: '', text: 'Ich' }));
-  fUser.value = s ? (s.userId || '') : (S.person !== 'all' ? S.person : (S.me || ''));
+  fUser.value = s ? (s.userId || S.me || '') : (S.me || '');
   const fNote = h('input', { type: 'text', id: 's-note', maxlength: '200', value: s ? (s.note || '') : '', placeholder: 'z. B. Startseite Texte, Kundentermin …' });
   const form = h('form', { class: 'form', onsubmit: e => { e.preventDefault(); save(); } },
     h('label', { class: 'lbl', for: 's-proj' }, 'Kunde und Job', fProj),
-    h('div', { class: 'row2' }, h('label', { class: 'lbl', for: 's-date' }, 'Datum', fDate), h('label', { class: 'lbl', for: 's-user' }, 'Person', fUser)),
+    h('label', { class: 'lbl', for: 's-date' }, 'Datum', fDate),
     h('div', { class: 'row2' }, h('label', { class: 'lbl', for: 's-start' }, 'Beginn (optional)', fStart), h('label', { class: 'lbl', for: 's-hours' }, 'Dauer in Stunden', fHours)),
     h('label', { class: 'lbl', for: 's-note' }, 'Was steht an?', fNote),
     h('button', { type: 'submit', hidden: true }));
