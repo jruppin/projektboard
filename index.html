@@ -63,6 +63,10 @@ h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance;margin:0;letter-sp
 .brand h1{font-size:22px}
 .brand span{color:var(--muted);font-size:13px}
 .tabnav{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+/* Boards: freie Kacheln mit Ideen – ohne Status, Fälligkeit, Mail, Planung, Zähler */
+.tile.pers .tile-meta,.tile.pers .job-meta,.tile.pers .mail-btn,.tile.pers [data-act="plan"],.tile.pers .done-toggle{display:none !important}
+.tile.pers .tile-head{padding-bottom:12px}
+#view-board.pers #status-filter,#view-board.pers label[for="person-board"],#view-board.pers label[for="show-done"]{display:none}
 .tabs{display:flex;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px}
 .tab{border:0;background:transparent;padding:6px 16px;border-radius:999px;font-weight:500;color:var(--muted)}
 .tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
@@ -1052,7 +1056,7 @@ async function saveProject(id, data) {
   const body = { title: '', clientId: '', status: 'offen', due: '', members: S.me ? [S.me] : [], ...data, order: maxOrder + 1000, createdBy: S.me || null, createdAt: Date.now() };
   const rec = { ...body, id: nid }; if (isPers(client(body.clientId))) markP(nid, rec);
   S.projects.set(nid, rec); queueRender();
-  const ok = await write('projects/' + nid, () => pDoc(nid).set(body), 'Job angelegt');
+  const ok = await write('projects/' + nid, () => pDoc(nid).set(body), rec._p ? 'Idee angelegt' : 'Job angelegt');
   if (!ok) { S.projects.delete(nid); queueRender(); }
   return ok;
 }
@@ -1181,6 +1185,12 @@ function visibleClients() {
   for (const c of clientsSorted()) {
     if (isPers(c) !== pers) continue;
     const clientMatch = !!q && String(c.name || '').toLowerCase().includes(q);
+    if (pers) {
+      // Boards: keine Status-/Personenfilter, nur die Suche
+      const jobs = jobsOf(c.id).filter(p => !q || clientMatch || [p.title, ...notesOf(p.id).map(n => n.text)].join(' ').toLowerCase().includes(q));
+      if (jobs.length || clientMatch || !q) out.push({ c, jobs });
+      continue;
+    }
     const jobs = jobsOf(c.id).filter(p => jobVisible(p, clientMatch, c.id));
     if (jobs.length || clientMatch || !filtersActive()) out.push({ c, jobs });
   }
@@ -1195,6 +1205,11 @@ function renderSummary() {
   const overdue = act.filter(p => p.due && parseYmd(p.due) < today()).length;
   const activeClients = new Set(act.map(p => clientOf(p) ? p.clientId : NO_CLIENT)).size;
   const stat = (n, l) => h('span', { class: 'stat' }, h('b', { text: n }), l);
+  if (pers) {
+    const nb = [...S.clients.values()].filter(isPers).length, ni = [...S.projects.values()].filter(isPers).length;
+    $('#summary').replaceChildren(stat(nb, nb === 1 ? 'Board' : 'Boards'), stat(ni, ni === 1 ? 'Idee' : 'Ideen'), stat(openNotes, openNotes === 1 ? 'Notiz' : 'Notizen'));
+    return;
+  }
   $('#summary').replaceChildren(
     stat(activeClients, pers ? (activeClients === 1 ? 'Board aktiv' : 'Boards aktiv') : (activeClients === 1 ? 'Kunde aktiv' : 'Kunden aktiv')),
     stat(act.length, act.length === 1 ? 'offener Job' : 'offene Jobs'),
@@ -1230,13 +1245,15 @@ function renderBoard() {
   });
   const empty = $('#board-empty');
   const pers = inBoards();
+  $('#view-board').classList.toggle('pers', pers);
+  $('#q').placeholder = pers ? 'Boards, Ideen und Notizen durchsuchen' : 'Kunden, Jobs und Notizen durchsuchen';
   const loading = !S.initDone || (S.db && !(pers ? S.pLoaded || S.pErr : (S.loaded.projects && S.loaded.clients)));
   $('#new-project span').textContent = pers ? 'Neues Board' : 'Neuer Kunde';
   if (!list.length) {
     empty.hidden = false;
     if (pers && S.pErr) empty.replaceChildren(h('h2', { text: 'Boards nicht verfügbar' }), h('p', { text: 'Deine Boards können gerade nicht geladen werden. Bitte die Seite neu laden.' }));
     else if (loading) empty.replaceChildren(h('p', { text: pers ? 'Boards werden geladen …' : 'Kunden werden geladen …' }));
-    else if (pers && ![...S.clients.values()].some(isPers)) empty.replaceChildren(h('h2', { text: 'Noch keine Boards' }), h('p', { text: 'Boards sind deine persönlichen Kacheln – nur du siehst sie. Sie funktionieren wie die Kacheln unter „Projekte“: Jobs, Notizen, Planung.' }), S.canWrite ? h('button', { class: 'btn primary', type: 'button', onclick: () => openClientDialog() }, 'Neues Board') : null);
+    else if (pers && ![...S.clients.values()].some(isPers)) empty.replaceChildren(h('h2', { text: 'Noch keine Boards' }), h('p', { text: 'Boards sind deine persönlichen, frei gestaltbaren Kacheln – nur du siehst sie. Sammle darin Ideen mit Notizen.' }), S.canWrite ? h('button', { class: 'btn primary', type: 'button', onclick: () => openClientDialog() }, 'Neues Board') : null);
     else if (S.clients.size || S.projects.size) empty.replaceChildren(h('h2', { text: 'Keine Treffer' }), h('p', { text: 'Kein Kunde und kein Job passt zu Suche oder Filter.' }), h('button', { class: 'btn', type: 'button', onclick: resetFilters }, 'Filter zurücksetzen'));
     else empty.replaceChildren(h('h2', { text: 'Noch keine Kunden' }), h('p', { text: 'Jede Kachel ist ein Kunde. Leg einen an und trag darin seine Jobs ein.' }), S.canWrite ? h('button', { class: 'btn primary', type: 'button', onclick: () => openClientDialog() }, 'Neuer Kunde') : null);
   } else empty.hidden = true;
@@ -1364,6 +1381,10 @@ function updateTile(el, c, jobs) {
   const edit = $('[data-act="edit-client"]', el); if (edit) edit.hidden = !!c.virtual;
   if (edit) { const t = isPers(c) ? 'Board bearbeiten' : 'Kunde bearbeiten'; edit.title = t; edit.setAttribute('aria-label', t); }
   $('.job-add', el).hidden = !!c.virtual;
+  const persT = isPers(c);
+  el.classList.toggle('pers', persT);
+  const ja = $('.job-add input', el);
+  if (ja) { ja.placeholder = persT ? 'Neue Idee …' : 'Neuer Job …'; ja.setAttribute('aria-label', persT ? 'Neue Idee anlegen' : 'Neuen Job anlegen'); }
 
   const all = jobsOf(c.id);
   const open = all.filter(p => p.status !== 'erledigt');
@@ -1409,6 +1430,7 @@ function updateTile(el, c, jobs) {
 }
 function updateJob(je, p, c) {
   je.classList.toggle('is-done', p.status === 'erledigt');
+  if (isPers(p)) { const eb = $('[data-act="edit"]', je); if (eb) { eb.title = 'Idee bearbeiten'; eb.setAttribute('aria-label', 'Idee bearbeiten'); } const g = $('.job-grip', je); if (g) g.title = 'Idee verschieben'; }
   $('.job-title', je).textContent = p.title || 'Ohne Titel';
   const meta = $('.job-meta', je);
   const parts = [h('button', { class: `pill st-${p.status || 'offen'}`, type: 'button', 'data-act': 'status', title: 'Status weiterschalten', disabled: !S.canWrite }, statusLabel(p.status)), dueChip(p)];
@@ -1527,7 +1549,7 @@ function buildPrintView() {
     return h('section', { class: 'pv-client', '--c': col },
       h('div', { class: 'pv-client-head' + (darkTextOn(col) ? ' on-light' : '') },
         h('span', { text: c.name || 'Ohne Namen' }),
-        h('span', { class: 'pv-client-sub', text: `${open.length} offene${open.length === 1 ? 'r' : ''} Job${open.length === 1 ? '' : 's'}${done ? ` · ${done} erledigt` : ''}` })),
+        h('span', { class: 'pv-client-sub', text: pvPers ? `${all.length} Idee${all.length === 1 ? '' : 'n'}` : `${open.length} offene${open.length === 1 ? 'r' : ''} Job${open.length === 1 ? '' : 's'}${done ? ` · ${done} erledigt` : ''}` })),
       open.length ? open.map(p => {
         const notes = sortNotes(notesOf(p.id));
         const wh = weekHours(p.id, ws);
@@ -1536,11 +1558,11 @@ function buildPrintView() {
         return h('div', { class: 'pv-job' },
           h('div', { class: 'pv-job-line' },
             h('span', { class: 'pv-job-title', text: p.title || 'Ohne Titel' }),
-            tag(statusLabel(p.status)), due,
+            pvPers ? null : tag(statusLabel(p.status)), pvPers ? null : due,
             wh ? tag(`${fmtH(wh)} in KW ${kw}`) : null,
             (p.members || []).length ? h('span', { class: 'pv-team', text: (p.members || []).map(nameOf).join(', ') }) : null),
           notes.length ? h('ul', { class: 'pv-notes' }, notes.map(n => h('li', { class: n.done ? 'done' : null, text: n.text }))) : null);
-      }) : h('div', { class: 'pv-job pv-empty', text: 'Keine offenen Jobs.' }));
+      }) : h('div', { class: 'pv-job pv-empty', text: pvPers ? 'Noch keine Ideen.' : 'Keine offenen Jobs.' }));
   });
   // Teil 2: eigene Wochenplanung der gewählten Woche
   const days = [];
@@ -1587,7 +1609,7 @@ function printOverview() {
 }
 
 function buildPalette(pal) {
-  const groups = clientsSorted().slice().sort((a, b) => abc(a.name, b.name))
+  const groups = clientsSorted().filter(c => !isPers(c)).sort((a, b) => abc(a.name, b.name))
     .map(c => ({ c, jobs: jobsOf(c.id).filter(p => p.status !== 'erledigt').sort((a, b) => abc(a.title, b.title)) })).filter(g => g.jobs.length);
   pal.replaceChildren(...(groups.length ? groups.flatMap(g => [
     h('div', { class: 'pal-client', '--c': g.c.color || COLORS[0], text: g.c.name }),
@@ -2118,7 +2140,7 @@ function confirmDeleteClient(id) {
   const jobs = jobsOf(id);
   const nn = jobs.reduce((a, p) => a + notesOf(p.id).length, 0);
   const ns = [...S.slots.values()].filter(s => jobs.some(p => p.id === s.projectId)).length;
-  openModal(`„${c.name}“ löschen?`, h('p', { style: 'margin:0', text: `${isPers(c) ? 'Das Board wird gelöscht' : 'Der Kunde wird für alle gelöscht'}, zusammen mit ${jobs.length} Job${jobs.length === 1 ? '' : 's'}, ${nn} Notiz${nn === 1 ? '' : 'en'} und ${ns} Planung${ns === 1 ? '' : 'en'}. Das lässt sich nicht rückgängig machen.` }), [
+  openModal(`„${c.name}“ löschen?`, h('p', { style: 'margin:0', text: isPers(c) ? `Das Board wird gelöscht, zusammen mit ${jobs.length} Idee${jobs.length === 1 ? '' : 'n'} und ${nn} Notiz${nn === 1 ? '' : 'en'}. Das lässt sich nicht rückgängig machen.` : `Der Kunde wird für alle gelöscht, zusammen mit ${jobs.length} Job${jobs.length === 1 ? '' : 's'}, ${nn} Notiz${nn === 1 ? '' : 'en'} und ${ns} Planung${ns === 1 ? '' : 'en'}. Das lässt sich nicht rückgängig machen.` }), [
     h('button', { class: 'btn', type: 'button', onclick: closeModal }, 'Abbrechen'),
     h('button', { class: 'btn primary', type: 'button', style: 'background:var(--bad);border-color:var(--bad);color:#fff', onclick: () => { closeModal(); deleteClient(id); } }, 'Endgültig löschen')
   ]);
@@ -2152,7 +2174,11 @@ function openProjectDialog(id, opts = {}) {
   fPick.addEventListener('input', () => showHits(fPick.value));
   fPick.addEventListener('blur', () => setTimeout(() => { pickList.hidden = true; }, 150));
 
-  const form = h('form', { class: 'form', onsubmit: e => { e.preventDefault(); save(); } },
+  const form = pers ? h('form', { class: 'form', onsubmit: e => { e.preventDefault(); save(); } },
+    h('label', { class: 'lbl', for: 'f-title' }, 'Idee', fTitle),
+    h('label', { class: 'lbl', for: 'f-client' }, 'Board', fClient),
+    h('button', { type: 'submit', hidden: true })
+  ) : h('form', { class: 'form', onsubmit: e => { e.preventDefault(); save(); } },
     h('label', { class: 'lbl', for: 'f-title' }, 'Job', fTitle),
     h('div', { class: 'row2' }, h('label', { class: 'lbl', for: 'f-client' }, pers ? 'Board' : 'Kunde', fClient), h('label', { class: 'lbl', for: 'f-status' }, 'Status', fStatus)),
     h('div', { class: 'row2' }, h('label', { class: 'lbl', for: 'f-due' }, 'Fällig am', fDue), h('div')),
@@ -2161,13 +2187,13 @@ function openProjectDialog(id, opts = {}) {
   );
   async function save() {
     const title = clean(fTitle.value, 120).trim();
-    if (!title) { fTitle.focus(); toast('Bitte einen Namen für den Job eingeben.', true); return; }
+    if (!title) { fTitle.focus(); toast(pers ? 'Bitte einen Namen für die Idee eingeben.' : 'Bitte einen Namen für den Job eingeben.', true); return; }
     closeModal();
-    const data = { title, status: fStatus.value, due: fDue.value || '', members: st.members };
+    const data = pers ? { title } : { title, status: fStatus.value, due: fDue.value || '', members: st.members };
     if (!p || p.clientId !== fClient.value) data.clientId = fClient.value;
     await saveProject(id || null, data);
   }
-  openModal(p ? 'Job bearbeiten' : 'Neuer Job', form, [
+  openModal(pers ? (p ? 'Idee bearbeiten' : 'Neue Idee') : (p ? 'Job bearbeiten' : 'Neuer Job'), form, [
     p ? h('button', { class: 'btn danger left', type: 'button', onclick: () => confirmDelete(id) }, svg(ICON.trash), 'Löschen') : null,
     h('button', { class: 'btn', type: 'button', onclick: closeModal }, 'Abbrechen'),
     h('button', { class: 'btn primary', type: 'button', onclick: save }, p ? 'Speichern' : 'Anlegen')
@@ -2176,7 +2202,7 @@ function openProjectDialog(id, opts = {}) {
 function confirmDelete(id) {
   const p = proj(id); if (!p) return;
   const nn = notesOf(id).length, ns = [...S.slots.values()].filter(s => s.projectId === id).length;
-  openModal(`Job „${p.title}“ löschen?`, h('p', { style: 'margin:0', text: `Der Job wird für alle gelöscht, zusammen mit ${nn} Notiz${nn === 1 ? '' : 'en'} und ${ns} Planung${ns === 1 ? '' : 'en'}. Das lässt sich nicht rückgängig machen. Tipp: Mit dem Status „Erledigt“ bleibt er erhalten.` }), [
+  openModal(isPers(p) ? `Idee „${p.title}“ löschen?` : `Job „${p.title}“ löschen?`, h('p', { style: 'margin:0', text: isPers(p) ? `Die Idee wird gelöscht, zusammen mit ${nn} Notiz${nn === 1 ? '' : 'en'}. Das lässt sich nicht rückgängig machen.` : `Der Job wird für alle gelöscht, zusammen mit ${nn} Notiz${nn === 1 ? '' : 'en'} und ${ns} Planung${ns === 1 ? '' : 'en'}. Das lässt sich nicht rückgängig machen. Tipp: Mit dem Status „Erledigt“ bleibt er erhalten.` }), [
     h('button', { class: 'btn', type: 'button', onclick: closeModal }, 'Abbrechen'),
     h('button', { class: 'btn primary', type: 'button', style: 'background:var(--bad);border-color:var(--bad);color:#fff', onclick: () => { closeModal(); deleteProject(id); } }, 'Endgültig löschen')
   ]);
@@ -2588,7 +2614,7 @@ function exposeImportApi() {
       const last = mail.reduce((a, n) => Math.max(a, n.createdAt || 0), 0);
       return {
         ready: true, me: nameOf(S.me), lastImport: iso(last),
-        clients: clientsSorted().map(c => ({ id: c.id, name: c.name, personal: isPers(c), jobs: jobsOf(c.id).map(p => ({ id: p.id, title: p.title, status: p.status, due: p.due || '' })) })),
+        clients: clientsSorted().filter(c => !isPers(c)).map(c => ({ id: c.id, name: c.name, jobs: jobsOf(c.id).map(p => ({ id: p.id, title: p.title, status: p.status, due: p.due || '' })) })),
         mailKeys: mail.map(n => n.mailKey).filter(Boolean),
         threadsReady: !!S.loaded.threads && !S.threadsErr,
         threads: myThreads().map(t => ({ id: t.id, key: t.key, projectId: t.projectId, projectIds: threadJobs(t), subject: t.subject, messageIds: (t.messages || []).map(m => m.id), lastAt: t.lastAt })),
