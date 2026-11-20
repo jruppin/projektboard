@@ -118,7 +118,8 @@ textarea{width:100%;resize:vertical;min-height:70px}
 .sort-abc svg,.tiles-all svg{width:15px;height:15px;transition:transform .15s}
 .tiles-all[aria-expanded="false"] svg{transform:rotate(-90deg)}
 .tile.collapsed .jobs,.tile.collapsed .done-toggle,.tile.collapsed .job-add,.tile.collapsed [data-act="notes-client"]{display:none !important}
-.tile.collapsed .tile-meta{padding-bottom:12px}
+.tile.collapsed .tile-meta{padding-bottom:12px;flex-wrap:nowrap;overflow:hidden}
+.tile.collapsed h3{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 button.pill.jobs-count{cursor:pointer;font:inherit}
 button.pill.jobs-count:hover{filter:brightness(.96)}
 .notes-all svg,.notes-tg svg{width:15px;height:15px;transition:transform .15s}
@@ -1283,7 +1284,12 @@ let masonryRO = null;
 function layoutMasonry() {
   const grid = $('#grid'); if (!grid) return;
   const tiles = $$(':scope > .tile', grid).filter(t => !t.hidden);
-  const cols = Math.max(1, getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length);
+  // Spaltenzahl aus Breite und Mindestbreite (wie repeat(auto-fill, minmax(...))) – nicht aus den belegten Spalten,
+  // sonst zählen alte Platzierungen nach einem Wechsel Groß/Normal/Kompakt als zusätzliche Spalten mit
+  const st = getComputedStyle(grid);
+  const gap = parseFloat(st.columnGap) || 0, min = parseFloat(st.getPropertyValue('--tile-min')) || 290;
+  const w = grid.clientWidth - (parseFloat(st.paddingLeft) || 0) - (parseFloat(st.paddingRight) || 0);
+  const cols = Math.max(1, Math.floor((w + gap) / (min + gap)));
   const heights = new Array(cols).fill(1);
   let cur = 0;
   for (const t of tiles) {
@@ -1410,6 +1416,7 @@ function updateTile(el, c, jobs) {
   el.classList.toggle('size-l', c.size === 'l');
   el.classList.toggle('is-virtual', !!c.virtual);
   $('h3', el).textContent = c.name || 'Ohne Namen';
+  $('h3', el).title = c.name || '';
   const edit = $('[data-act="edit-client"]', el); if (edit) edit.hidden = !!c.virtual;
   if (edit) { const t = isPers(c) ? 'Board bearbeiten' : 'Kunde bearbeiten'; edit.title = t; edit.setAttribute('aria-label', t); }
   $('.job-add', el).hidden = !!c.virtual;
