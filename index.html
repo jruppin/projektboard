@@ -112,9 +112,11 @@ textarea{width:100%;resize:vertical;min-height:70px}
 .summary{display:flex;flex-wrap:wrap;gap:8px}
 .board-bar{display:flex;align-items:flex-start;justify-content:space-between;gap:10px 14px;margin-bottom:14px}
 .notes-all{flex:none;margin-left:auto}
+.sort-abc{flex:none;margin-left:auto}
 .tiles-all{flex:none;margin-left:auto}
-.tiles-all+.notes-all{margin-left:0}
-.tiles-all svg{width:15px;height:15px}
+.sort-abc+.tiles-all,.tiles-all+.notes-all{margin-left:0}
+.sort-abc svg,.tiles-all svg{width:15px;height:15px;transition:transform .15s}
+.tiles-all[aria-expanded="false"] svg{transform:rotate(-90deg)}
 .tile.collapsed .jobs,.tile.collapsed .done-toggle,.tile.collapsed .job-add,.tile.collapsed [data-act="notes-client"]{display:none !important}
 .tile.collapsed .tile-meta{padding-bottom:12px}
 button.pill.jobs-count{cursor:pointer;font:inherit}
@@ -621,8 +623,9 @@ a.btn{text-decoration:none;color:inherit}
     </div>
     <div class="board-bar">
       <div class="summary" id="summary"></div>
-      <button class="btn tiles-all" id="tiles-all" type="button" aria-expanded="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 3 4 4 4-4M4 9l4 4 4-4"/></svg><span>Alle Kunden einklappen</span></button>
-      <button class="btn notes-all" id="notes-all" type="button" aria-expanded="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg><span>Alle Notizen einklappen</span></button>
+      <button class="btn sort-abc write-only" id="sort-abc" type="button" title="Kacheln nach Namen von A bis Z ordnen – danach weiter frei verschiebbar"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h10M3 8h7M3 12h4"/></svg><span>Alphabetisch sortieren</span></button>
+      <button class="btn tiles-all" id="tiles-all" type="button" aria-expanded="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg><span>Projekte einklappen</span></button>
+      <button class="btn notes-all" id="notes-all" type="button" aria-expanded="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg><span>Notizen einklappen</span></button>
     </div>
     <div class="grid" id="grid" data-density="m"></div>
     <div class="empty" id="board-empty" hidden></div>
@@ -1261,31 +1264,60 @@ function renderBoard() {
   const anyTileOpen = list.some(x => tileIsOpen(x.c.id));
   tilesBtn.hidden = !list.length;
   tilesBtn.setAttribute('aria-expanded', String(anyTileOpen));
-  $('span', tilesBtn).textContent = pers ? (anyTileOpen ? 'Alle Boards einklappen' : 'Alle Boards ausklappen') : (anyTileOpen ? 'Alle Kunden einklappen' : 'Alle Kunden ausklappen');
+  $('span', tilesBtn).textContent = (pers ? 'Boards' : 'Projekte') + (anyTileOpen ? ' einklappen' : ' ausklappen');
+  $('#sort-abc').hidden = list.filter(x => !x.c.virtual).length < 2;
   tilesBtn.title = anyTileOpen ? 'Kacheln auf den Kundennamen verkleinern – Jobs ausblenden' : 'Alle Kacheln mit ihren Jobs zeigen';
   const allBtn = $('#notes-all');
   const anyOpen = list.some(x => tileIsOpen(x.c.id) && x.jobs.some(p => jobNotesOpen(p.id)));
   allBtn.hidden = !list.some(x => tileIsOpen(x.c.id) && x.jobs.length);
   allBtn.setAttribute('aria-expanded', String(anyOpen));
-  $('span', allBtn).textContent = anyOpen ? 'Alle Notizen einklappen' : 'Alle Notizen ausklappen';
-  layoutMasonry($$(':scope > .tile', grid));
+  $('span', allBtn).textContent = anyOpen ? 'Notizen einklappen' : 'Notizen ausklappen';
+  layoutMasonry();
   ensureBoardSortable();
 }
 /* Mauerwerk: Höhe jeder Kachel in Rasterzeilen umrechnen, damit die nächste direkt darunter anschließt */
 const MASONRY_ROW = 4, MASONRY_GAP = 14;
 let masonryRO = null;
-function layoutMasonry(tiles) {
+/* Jede Kachel bekommt eine feste Spalte (Reihenfolge links → rechts, dann nächste Reihe). Wird eine Kachel höher,
+   rutschen nur die Kacheln darunter in derselben Spalte nach unten – keine springt in eine andere Spalte. */
+function layoutMasonry() {
+  const grid = $('#grid'); if (!grid) return;
+  const tiles = $$(':scope > .tile', grid).filter(t => !t.hidden);
+  const cols = Math.max(1, getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length);
+  const heights = new Array(cols).fill(1);
+  let cur = 0;
   for (const t of tiles) {
     const hgt = t.getBoundingClientRect().height;
-    if (!hgt) continue;
-    const span = 'span ' + Math.max(1, Math.ceil((hgt + MASONRY_GAP) / MASONRY_ROW));
-    if (t.style.gridRowEnd !== span) t.style.gridRowEnd = span;
+    const span = Math.max(1, Math.ceil(((hgt || 40) + MASONRY_GAP) / MASONRY_ROW));
+    const w = Math.min(cols, t.classList.contains('size-l') ? 2 : 1);
+    if (cur + w > cols) cur = 0;
+    const row = Math.max(...heights.slice(cur, cur + w));
+    for (let k = cur; k < cur + w; k++) heights[k] = row + span;
+    const gc = `${cur + 1} / span ${w}`, gr = `${row} / span ${span}`;
+    if (t.style.gridColumn !== gc) t.style.gridColumn = gc;
+    if (t.style.gridRow !== gr) t.style.gridRow = gr;
+    cur = (cur + w) % cols;
   }
 }
+let masonryRaf = 0;
+const queueMasonry = () => { if (!masonryRaf) masonryRaf = requestAnimationFrame(() => { masonryRaf = 0; layoutMasonry(); }); };
 function observeMasonry(el) {
   if (!('ResizeObserver' in window)) return;
-  if (!masonryRO) masonryRO = new ResizeObserver(entries => layoutMasonry(entries.map(e => e.target)));
+  if (!masonryRO) { masonryRO = new ResizeObserver(queueMasonry); window.addEventListener('resize', queueMasonry); }
   masonryRO.observe(el);
+}
+/* Kacheln des aktuellen Bereichs alphabetisch ordnen (setzt die gespeicherte Reihenfolge – danach weiter frei verschiebbar) */
+async function sortTilesAbc() {
+  if (!S.canWrite) return;
+  const pers = inBoards();
+  const list = [...S.clients.values()].filter(c => isPers(c) === pers).sort((a, b) => abc(a.name || '', b.name || ''));
+  const changed = [];
+  list.forEach((c, i) => { const o = (i + 1) * 1000; if (c.order !== o) { S.clients.set(c.id, { ...c, order: o }); changed.push([c.id, o]); } });
+  if (!changed.length) { toast('Schon alphabetisch sortiert'); return; }
+  queueRender();
+  let ok = true;
+  for (const [id, o] of changed) ok = (await write('clients/' + id, () => cDoc(id).update({ order: o }))) && ok;
+  toast(ok ? 'Alphabetisch sortiert' : 'Nicht alle Kacheln konnten gespeichert werden', !ok);
 }
 /* Kacheln ein-/ausklappen: globaler Standard + Abweichungen je Kunde (im Browser gemerkt); bei einer Suche immer offen */
 const tileIsOpen = cid => !!S.q.trim() || (S.tileOpen.has(cid) ? S.tileOpen.get(cid) : S.tilesOpen);
@@ -1477,8 +1509,10 @@ function ensureBoardSortable() {
       animation: 160, handle: '.tile-head', filter: '.no-drag', preventOnFilter: false, draggable: '.tile',
       ghostClass: 'tile-ghost', chosenClass: 'tile-chosen', delayOnTouchOnly: true, delay: 180,
       onStart() { S.dragging = true; },
+      onChange() { layoutMasonry(); },
       onEnd(evt) {
         S.dragging = false;
+        layoutMasonry();
         if (evt.oldIndex !== evt.newIndex) reorderTile(evt.item.dataset.id);
         if (S.pending) { S.pending = false; queueRender(); }
       }
@@ -2450,6 +2484,7 @@ function bindStatic() {
   $('#new-project').addEventListener('click', () => openClientDialog());
   $('#notes-all').addEventListener('click', toggleAllNotes);
   $('#tiles-all').addEventListener('click', toggleAllTiles);
+  $('#sort-abc').addEventListener('click', sortTilesAbc);
   for (const sel of ['#day-mail', '#mail-thread']) $(sel).addEventListener('click', e => {
     const b = e.target.closest('button[data-act]'); if (!b) return;
     if (b.dataset.act === 'mm-more') { const id = b.dataset.mid; S.mmFull.has(id) ? S.mmFull.delete(id) : S.mmFull.add(id); }
